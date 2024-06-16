@@ -17,14 +17,7 @@ export default defineNuxtConfig({
     head: {
       charset: 'utf-8',
       viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0',
-      link: [
-        { rel: 'icon', href: '/favicon.webp' }
-        // {
-        //   id: 'theme-link',
-        //   rel: 'stylesheet',
-        //   href: '/themes/aura-light-noir/theme.css'
-        // }
-      ]
+      link: [{ rel: 'icon', href: '/favicon.webp' }]
     }
   },
 
@@ -59,7 +52,8 @@ export default defineNuxtConfig({
 
   primevue: {
     options: {
-      unstyled: true
+      unstyled: true,
+      ripple: true
     },
     importPT: { from: path.resolve(__dirname, './presets/aura/') } // Import and apply preset
     // For Windows
@@ -103,6 +97,12 @@ export default defineNuxtConfig({
           purpose: 'any'
         }
       ]
+    }
+  },
+
+  nitro: {
+    experimental: {
+      websocket: true
     }
   }
 })

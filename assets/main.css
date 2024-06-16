@@ -60,6 +60,20 @@ body > * {
   translate: 0;
 }
 
+.no-arrows {
+  /* For Chrome, Safari, Edge, Opera */
+  -webkit-appearance: none;
+  margin: 0;
+  /* For Firefox */
+  -moz-appearance: textfield;
+}
+
+.no-arrows::-webkit-inner-spin-button,
+.no-arrows::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 /* Primevue */
 
 :root {

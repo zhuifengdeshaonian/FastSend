@@ -1,7 +1,10 @@
 <script setup lang="ts">
-const isNavFixed = useIsNavFixed(undefined)
-const primeVue = usePrimeVue()
+const { locale, setLocale } = useI18n()
 const colorMode = useColorMode()
+const isBgBlur = ref(false)
+const userInfo = useUserInfo()
+const tmpNickname = ref('')
+const op = ref()
 
 function switchColorMode() {
   if (colorMode.preference === 'light') {
@@ -11,18 +14,101 @@ function switchColorMode() {
   }
   //   console.log(colorMode)
 }
+
+function switchI18n() {
+  if (locale.value === 'en') {
+    setLocale('zh')
+  } else {
+    setLocale('en')
+  }
+}
+
+function toggle(event: Event) {
+  tmpNickname.value = userInfo.value.nickname
+  op.value.toggle(event)
+}
+
+function editNickname() {
+  userInfo.value.nickname = tmpNickname.value.trim().substring(0, 16)
+  if (!userInfo.value.nickname) {
+    userInfo.value.nickname = 'User_' + genRandomString(6)
+  }
+  localStorage.setItem('nickname', userInfo.value.nickname)
+  op.value.hide()
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', () => {
+    isBgBlur.value = getScrollTop() > 64
+  })
+
+  let nickname = localStorage.getItem('nickname')
+  if (!nickname) {
+    nickname = 'User_' + genRandomString(6)
+    localStorage.setItem('nickname', nickname)
+  }
+  userInfo.value.nickname = nickname
+
+  const avatarURL = localStorage.getItem('avatarURL')
+  if (!avatarURL) {
+    const fr = new FileReader()
+    fr.onload = () => {
+      userInfo.value.avatarURL = fr.result + ''
+      localStorage.setItem('avatarURL', userInfo.value.avatarURL)
+    }
+    fetch('/akari.webp')
+      .then((res) => res.blob())
+      .then((blob) => fr.readAsDataURL(blob))
+  } else {
+    userInfo.value.avatarURL = avatarURL
+  }
+})
 </script>
 
 <template>
   <nav
-    class="flex flex-row items-center py-3 px-4 md:py-4 md:px-20 left-0 right-0 top-0 z-50"
-    :class="{ 'sticky backdrop-blur': !isNavFixed, fixed: isNavFixed }"
+    class="flex flex-row items-center py-3 px-4 md:py-4 md:px-[10vw] sticky left-0 right-0 top-0 z-50 nav-bar"
+    :class="{ 'backdrop-blur': isBgBlur }"
   >
-    <div>FastSync</div>
+    <div class="tracking-wider">FastSync</div>
 
     <div class="flex-1"></div>
 
+    <div class="contents text-sm">
+      <Avatar :image="userInfo.avatarURL" shape="circle" class="shadow cursor-pointer" />
+      <p @click="toggle" class="cursor-pointer ml-2 md:ml-3 truncate shrink-[1000]">
+        {{ userInfo.nickname }}
+      </p>
+    </div>
+    <OverlayPanel ref="op">
+      <InputGroup>
+        <InputText
+          severity="contrast"
+          size="small"
+          placeholder="昵称"
+          v-model:model-value="tmpNickname"
+          @keydown.enter="editNickname"
+        />
+        <Button severity="contrast" size="small" class="m-0" @click="editNickname"
+          ><Icon name="material-symbols:check-rounded"
+        /></Button>
+      </InputGroup>
+    </OverlayPanel>
+
     <div class="contents">
+      <Button severity="secondary" text @click="switchI18n" size="small" class="py-3 ml-2 md:ml-4">
+        <Icon
+          name="icon-park-outline:chinese"
+          class="text-black/90 dark:text-white/90"
+          v-if="locale === 'zh'"
+        />
+        <Icon
+          name="icon-park-outline:english"
+          class="text-black/90 dark:text-white/90"
+          v-else-if="locale === 'en'"
+        />
+      </Button>
+
       <Button severity="secondary" text @click="switchColorMode" size="small" class="py-3">
         <Icon
           name="solar:moon-linear"
@@ -34,3 +120,9 @@ function switchColorMode() {
     </div>
   </nav>
 </template>
+
+<style scoped>
+.nav-bar {
+  transition: backdrop-filter 0.5s ease;
+}
+</style>

@@ -4,6 +4,8 @@ export default defineI18nConfig(() => ({
   messages: {
     en: {
       welcome: 'Welcome',
+      description:
+        'A tool station based on WebRTC to achieve point-to-point fast directory synchronization and file transfer',
       home: 'Home',
       about: 'About',
       label: {
@@ -11,7 +13,10 @@ export default defineI18nConfig(() => ({
         secondsAgo: '{n} seconds ago',
         minutesAgo: '{n} minutes ago',
         hoursAgo: '{n} hours ago',
-        daysAgo: '{n} days ago'
+        daysAgo: '{n} days ago',
+        send: 'Send',
+        recive: 'Recive',
+        quickStart: 'Qucik Start'
       },
       btn: {
         submit: 'Submit',
@@ -28,6 +33,7 @@ export default defineI18nConfig(() => ({
     },
     zh: {
       welcome: '欢迎',
+      description: '基于WebRTC实现点对点快速目录同步和文件传输的工具站',
       home: '主页',
       about: '关于',
       label: {
@@ -35,7 +41,10 @@ export default defineI18nConfig(() => ({
         secondsAgo: '{n} 秒前',
         minutesAgo: '{n} 分前',
         hoursAgo: '{n} 小时前',
-        daysAgo: '{n} 天前'
+        daysAgo: '{n} 天前',
+        send: '发送',
+        recive: '接收',
+        quickStart: '快速开始'
       },
       btn: {
         submit: '提交',
