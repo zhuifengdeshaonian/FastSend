@@ -52,3 +52,47 @@ export function genRandomString(length: number): string {
   }
   return randomString
 }
+
+/**
+ * 选择头像图片
+ * @param cb 回调
+ * @returns
+ */
+export function selectAvatar(cb: (url: string) => void) {
+  if (typeof window === 'undefined') {
+    return
+  }
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = () => {
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0]
+      input.remove()
+      createImageBitmap(file)
+        .then((img) => {
+          // 将图片转256x256的webp格式，节省空间
+          const oc = new OffscreenCanvas(256, 256)
+          const ctx = oc.getContext('2d')
+          if (!ctx) {
+            throw new Error('Failed to create context')
+          }
+          ctx.drawImage(img, 0, 0, 256, 256)
+          return oc.convertToBlob({ type: 'image/webp', quality: 0.61 })
+        })
+        .then((blob) => {
+          // 再转换成DataURL方便存储
+          const fr = new FileReader()
+          fr.onload = () => {
+            cb(fr.result + '')
+          }
+          fr.readAsDataURL(blob)
+        })
+        .catch(console.warn)
+    } else {
+      cb('')
+      input.remove()
+    }
+  }
+  input.click()
+}

@@ -41,18 +41,22 @@ onMounted(() => {
 <template>
   <div class="md:px-[10vw] pb-8">
     <div
-      class="absolute inset-0 -z-50 h-full w-full bg-white dark:bg-zinc-950 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#25272b_1px,transparent_1px)] [background-size:16px_16px]"
+      class="fixed top-0 left-0 right-0 bottom-0 inset-0 -z-50 h-full w-full bg-white dark:bg-zinc-950 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#25272b_1px,transparent_1px)] [background-size:16px_16px]"
     ></div>
     <div class="py-6 px-8 text-center">
       <h1 class="md:text-6xl text-5xl tracking-wider font-serif">Fast Sync</h1>
-      <p class="mt-6 leading-6 tracking-wider text-gray-600 dark:text-gray-200">
+      <p
+        class="mt-6 leading-6 tracking-wider text-sm md:text-base text-gray-600 dark:text-gray-200"
+      >
         {{ $t('description') }}
       </p>
     </div>
 
-    <p class="text-sm text-neutral-600 dark:text-neutral-400 p-4" v-show="!isModernFileAPISupport">
-      <span class="text-red-500">*</span
-      >警告：您的浏览器不支持现代文件访问API，无法使用接收`目录同步`以及`接收目录`功能，同时接收文件限制1GB。
+    <p
+      class="text-xs md:text-sm text-neutral-600 dark:text-neutral-400 p-4"
+      v-show="!isModernFileAPISupport"
+    >
+      <span class="text-red-500">*</span>{{ $t('hint.noModernFileAPIWarn') }}
     </p>
 
     <div class="md:grid md:grid-cols-2 md:gap-4 mt-10 px-4">

@@ -37,6 +37,15 @@ function editNickname() {
   op.value.hide()
 }
 
+function editAvatar() {
+  selectAvatar((url) => {
+    if (url) {
+      userInfo.value.avatarURL = url
+      localStorage.setItem('avatarURL', url)
+    }
+  })
+}
+
 onMounted(() => {
   window.addEventListener('scroll', () => {
     isBgBlur.value = getScrollTop() > 64
@@ -75,7 +84,12 @@ onMounted(() => {
     <div class="flex-1"></div>
 
     <div class="contents text-sm">
-      <Avatar :image="userInfo.avatarURL" shape="circle" class="shadow cursor-pointer" />
+      <Avatar
+        :image="userInfo.avatarURL"
+        shape="circle"
+        class="shadow cursor-pointer"
+        @click="editAvatar"
+      />
       <p @click="toggle" class="cursor-pointer ml-2 md:ml-3 truncate shrink-[1000]">
         {{ userInfo.nickname }}
       </p>

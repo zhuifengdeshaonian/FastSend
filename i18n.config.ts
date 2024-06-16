@@ -29,7 +29,10 @@ export default defineI18nConfig(() => ({
         copy: 'Copy',
         copied: 'Copied'
       },
-      hint: {}
+      hint: {
+        noModernFileAPIWarn:
+          'Warning: Your browser does not support the modern file access API, which means you cannot use the `Directory Sync` and `Receive Directory` functions, and there is a file receiving limit of 1GB.'
+      }
     },
     zh: {
       welcome: '欢迎',
@@ -57,7 +60,10 @@ export default defineI18nConfig(() => ({
         copy: '复制',
         copied: '已复制'
       },
-      hint: {}
+      hint: {
+        noModernFileAPIWarn:
+          '警告：您的浏览器不支持现代文件访问API，无法使用接收`目录同步`以及`接收目录`功能，同时接收文件限制1GB。'
+      }
     }
   }
 }))
