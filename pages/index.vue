@@ -1,21 +1,78 @@
 <script setup>
 const localePath = useLocalePath()
 const router = useRouter()
+const toast = useToast()
 const isModernFileAPISupport = ref(true)
 const inputCode = ref('')
 
-async function syncDir() {
-  const fh = await showDirectoryPicker()
-  // console.log(fh)
-
-  useFileHandler(fh)
-
-  router.push({ path: localePath('/sender'), query: { type: 'syncDir' } })
+function syncDir() {
+  if (isModernFileAPISupport.value) {
+    showDirectoryPicker()
+      .then((fh) => {
+        useFullScreenLoader(true)
+        return dealFilesFromHandler(fh)
+      })
+      .then((fileMap) => {
+        if (Object.keys(fileMap).length === 0) {
+          throw '目录为空'
+        }
+        useFilesInfo('syncDir', fileMap)
+      })
+      .then(() => {
+        router.push(localePath('/sender'))
+        useFullScreenLoader(false)
+      })
+      .catch((e) => {
+        console.warn(e)
+        toast.add({ severity: 'error', summary: 'Error', detail: e, life: 3000 })
+        useFullScreenLoader(false)
+      })
+  } else {
+    // 注意：移动端不支持选择目录
+    selectDir((files) => {
+      useFilesInfo('syncDir', dealFilesFormList(files))
+      router.push(localePath('/sender'))
+    })
+  }
 }
 
-function sendDir() {}
+function sendDir() {
+  if (isModernFileAPISupport.value) {
+    showDirectoryPicker()
+      .then((fh) => {
+        useFullScreenLoader(true)
+        return dealFilesFromHandler(fh)
+      })
+      .then((fileMap) => {
+        if (Object.keys(fileMap).length === 0) {
+          throw '目录为空'
+        }
+        useFilesInfo('transDir', fileMap)
+      })
+      .then(() => {
+        router.push(localePath('/sender'))
+        useFullScreenLoader(false)
+      })
+      .catch((e) => {
+        console.warn(e)
+        toast.add({ severity: 'error', summary: 'Error', detail: e, life: 3000 })
+        useFullScreenLoader(false)
+      })
+  } else {
+    // 注意：移动端不支持选择目录
+    selectDir((files) => {
+      useFilesInfo('transDir', dealFilesFormList(files))
+      router.push(localePath('/sender'))
+    })
+  }
+}
 
-function sendFile() {}
+function sendFile() {
+  selectFile((file) => {
+    useFilesInfo('transFile', dealFilesFormFile(file))
+    router.push(localePath('/sender'))
+  })
+}
 
 watch(
   inputCode,
@@ -35,6 +92,7 @@ watch(
 
 onMounted(() => {
   isModernFileAPISupport.value = isModernFileAPIAvailable()
+  useFilesInfo('', {})
 })
 </script>
 
@@ -65,13 +123,29 @@ onMounted(() => {
           <Icon name="solar:card-send-linear" />{{ $t('label.quickStart') }}
         </h2>
 
-        <Button rounded class="block w-full tracking-wider" severity="contrast" @click="syncDir"
+        <Button
+          rounded
+          class="block w-full tracking-wider"
+          severity="contrast"
+          :disabled="!isModernFileAPISupport"
+          @click="syncDir"
           ><Icon name="solar:refresh-square-broken" class="mr-2" />目录同步</Button
         >
-        <Button outlined rounded class="block w-full tracking-wider" severity="contrast"
+        <Button
+          outlined
+          rounded
+          class="block w-full tracking-wider"
+          severity="contrast"
+          :disabled="!isModernFileAPISupport"
+          @click="sendDir"
           ><Icon name="solar:folder-with-files-line-duotone" class="mr-2" />发送目录</Button
         >
-        <Button outlined rounded class="block w-full tracking-wider" severity="contrast"
+        <Button
+          outlined
+          rounded
+          class="block w-full tracking-wider"
+          severity="contrast"
+          @click="sendFile"
           ><Icon name="solar:file-line-duotone" class="mr-2" />发送文件</Button
         >
       </div>

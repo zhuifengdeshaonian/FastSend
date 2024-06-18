@@ -7,6 +7,7 @@ onMounted(() => {
 <template>
   <NuxtRouteAnnouncer />
   <FullScreenLoader />
+  <Toast position="top-right" />
   <NavBar />
   <NuxtPage />
 </template>

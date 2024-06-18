@@ -68,6 +68,7 @@ export function selectAvatar(cb: (url: string) => void) {
   input.onchange = () => {
     if (input.files && input.files.length > 0) {
       const file = input.files[0]
+      input.onchange = null
       input.remove()
       createImageBitmap(file)
         .then((img) => {
@@ -91,6 +92,7 @@ export function selectAvatar(cb: (url: string) => void) {
         .catch(console.warn)
     } else {
       cb('')
+      input.onchange = null
       input.remove()
     }
   }

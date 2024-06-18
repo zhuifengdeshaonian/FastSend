@@ -31,7 +31,7 @@ export default defineI18nConfig(() => ({
       },
       hint: {
         noModernFileAPIWarn:
-          'Warning: Your browser does not support the modern file access API, which means you cannot use the `Directory Sync` and `Receive Directory` functions, and there is a file receiving limit of 1GB.'
+          'Warning: Your browser does not support modern file access APIs, making the `Directory Sync` and `Send Directory` features unavailable. Additionally, the file receiving limit is 1GB.'
       }
     },
     zh: {
@@ -62,7 +62,7 @@ export default defineI18nConfig(() => ({
       },
       hint: {
         noModernFileAPIWarn:
-          '警告：您的浏览器不支持现代文件访问API，无法使用接收`目录同步`以及`接收目录`功能，同时接收文件限制1GB。'
+          '警告：您的浏览器不支持现代文件访问API，无法使用`目录同步`以及`发送目录`功能，同时接收文件限制1GB。'
       }
     }
   }

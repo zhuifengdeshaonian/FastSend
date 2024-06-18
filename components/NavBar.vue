@@ -6,15 +6,16 @@ const userInfo = useUserInfo()
 const tmpNickname = ref('')
 const op = ref()
 
+// 暗色模式切换
 function switchColorMode() {
   if (colorMode.preference === 'light') {
     colorMode.preference = 'dark'
   } else {
     colorMode.preference = 'light'
   }
-  //   console.log(colorMode)
 }
 
+// 中英语言切换
 function switchI18n() {
   if (locale.value === 'en') {
     setLocale('zh')
@@ -23,11 +24,13 @@ function switchI18n() {
   }
 }
 
-function toggle(event: Event) {
+// 展示昵称编辑弹框
+function showNicknameEditor(event: Event) {
   tmpNickname.value = userInfo.value.nickname
   op.value.toggle(event)
 }
 
+// 编辑昵称
 function editNickname() {
   userInfo.value.nickname = tmpNickname.value.trim().substring(0, 16)
   if (!userInfo.value.nickname) {
@@ -37,6 +40,7 @@ function editNickname() {
   op.value.hide()
 }
 
+// 编辑头像
 function editAvatar() {
   selectAvatar((url) => {
     if (url) {
@@ -51,6 +55,7 @@ onMounted(() => {
     isBgBlur.value = getScrollTop() > 64
   })
 
+  // 初始化昵称
   let nickname = localStorage.getItem('nickname')
   if (!nickname) {
     nickname = 'User_' + genRandomString(6)
@@ -58,6 +63,7 @@ onMounted(() => {
   }
   userInfo.value.nickname = nickname
 
+  // 初始化头像
   const avatarURL = localStorage.getItem('avatarURL')
   if (!avatarURL) {
     const fr = new FileReader()
@@ -90,7 +96,7 @@ onMounted(() => {
         class="shadow cursor-pointer"
         @click="editAvatar"
       />
-      <p @click="toggle" class="cursor-pointer ml-2 md:ml-3 truncate shrink-[1000]">
+      <p @click="showNicknameEditor" class="cursor-pointer ml-2 md:ml-3 truncate shrink-[1000]">
         {{ userInfo.nickname }}
       </p>
     </div>
