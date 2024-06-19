@@ -1,5 +1,3 @@
-// import '@types/wicg-file-system-access'
-
 async function dealFilesFromHandlerLoop(
   fh: FileSystemFileHandle | FileSystemDirectoryHandle,
   paths: Array<string>,
@@ -36,17 +34,19 @@ export async function dealFilesFromHandler(fh: FileSystemDirectoryHandle) {
  * @param fl
  * @returns
  */
-export function dealFilesFormList(fl: Array<File>) {
-  const result: any = {}
-  for (const f of fl) {
-    result[f.name] = {
-      paths: f.webkitRelativePath.split('/'),
-      size: f.size,
-      lastModified: f.lastModified,
-      file: f
+export async function dealFilesFormList(fl: Array<File>) {
+  return new Promise<any>((resolve, reject) => {
+    const result: any = {}
+    for (const f of fl) {
+      result[f.webkitRelativePath] = {
+        paths: f.webkitRelativePath.split('/'),
+        size: f.size,
+        lastModified: f.lastModified,
+        file: f
+      }
     }
-  }
-  return result
+    resolve(result)
+  })
 }
 
 /**
@@ -67,49 +67,66 @@ export function dealFilesFormFile(file: File) {
 
 /**
  * 选择目录
- * @param cb 回调方法
  * @returns
  */
-export function selectDir(cb: (files: Array<File>) => void) {
-  if (typeof window === 'undefined') {
-    return
-  }
-  const input = document.createElement('input')
-  input.style.display = 'none'
-  input.type = 'file'
-  input.multiple = true
-  input.webkitdirectory = true
-  input.onchange = () => {
-    input.onchange = null
-    input.remove()
-    if (input.files) {
-      cb([...input.files])
+export async function selectDir() {
+  return new Promise<Array<File>>((resolve, reject) => {
+    if (typeof document === 'undefined') {
+      reject()
+      return
     }
-  }
-  input.click()
+    const input = document.createElement('input')
+    input.style.display = 'none'
+    input.type = 'file'
+    input.multiple = true
+    input.webkitdirectory = true
+    input.onchange = () => {
+      input.onchange = null
+      input.oncancel = null
+      input.remove()
+      if (input.files) {
+        resolve([...input.files])
+      } else {
+        resolve([])
+      }
+    }
+    input.oncancel = () => {
+      if (input.files && input.files.length === 0) {
+        reject('No file')
+      } else {
+        reject('Cancel')
+      }
+    }
+    input.click()
+  })
 }
 
 /**
  * 选择文件
- * @param cb 回调方法
+ * @param accept 接受的MIME类型
  * @returns
  */
-export function selectFile(cb: (files: File) => void, accept: string | undefined) {
-  if (typeof window === 'undefined') {
-    return
-  }
-  const input = document.createElement('input')
-  input.style.display = 'none'
-  input.type = 'file'
-  if (accept) {
-    input.accept = accept
-  }
-  input.onchange = () => {
-    input.onchange = null
-    input.remove()
-    if (input.files && input.files.length > 0) {
-      cb(input.files[0])
+export async function selectFile(accept: string | undefined) {
+  return new Promise<File>((resolve, reject) => {
+    if (typeof document === 'undefined') {
+      reject()
+      return
     }
-  }
-  input.click()
+    const input = document.createElement('input')
+    input.style.display = 'none'
+    input.type = 'file'
+    if (accept) {
+      input.accept = accept
+    }
+    input.onchange = () => {
+      input.onchange = null
+      input.remove()
+      if (input.files && input.files.length > 0) {
+        resolve(input.files[0])
+      } else {
+        reject('No select')
+      }
+    }
+    input.click()
+  })
 }

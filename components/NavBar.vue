@@ -85,7 +85,7 @@ onMounted(() => {
     class="flex flex-row items-center py-3 px-4 md:py-4 md:px-[10vw] sticky left-0 right-0 top-0 z-50 nav-bar"
     :class="{ 'backdrop-blur': isBgBlur }"
   >
-    <div class="tracking-wider">FastSync</div>
+    <div class="tracking-wider">FastSend</div>
 
     <div class="flex-1"></div>
 

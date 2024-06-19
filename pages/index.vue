@@ -6,72 +6,79 @@ const isModernFileAPISupport = ref(true)
 const inputCode = ref('')
 
 function syncDir() {
-  if (isModernFileAPISupport.value) {
-    showDirectoryPicker()
-      .then((fh) => {
-        useFullScreenLoader(true)
-        return dealFilesFromHandler(fh)
-      })
-      .then((fileMap) => {
-        if (Object.keys(fileMap).length === 0) {
-          throw '目录为空'
-        }
-        useFilesInfo('syncDir', fileMap)
-      })
-      .then(() => {
-        router.push(localePath('/sender'))
-        useFullScreenLoader(false)
-      })
-      .catch((e) => {
-        console.warn(e)
-        toast.add({ severity: 'error', summary: 'Error', detail: e, life: 3000 })
-        useFullScreenLoader(false)
-      })
-  } else {
-    // 注意：移动端不支持选择目录
-    selectDir((files) => {
-      useFilesInfo('syncDir', dealFilesFormList(files))
-      router.push(localePath('/sender'))
+  // if (isModernFileAPISupport.value) {
+  // showDirectoryPicker()
+  //   .then((fh) => {
+  //     useFullScreenLoader(true)
+  //     return dealFilesFromHandler(fh)
+  //   })
+  //   .then((fileMap) => {
+  //     if (Object.keys(fileMap).length === 0) {
+  //       throw '目录为空'
+  //     }
+  //     useFilesInfo('syncDir', fileMap)
+  //     router.push(localePath('/sender'))
+  //     useFullScreenLoader(false)
+  //   })
+  //   .catch((e) => {
+  //     console.warn(e)
+  //     toast.add({ severity: 'error', summary: 'Error', detail: e, life: 3000 })
+  //     useFullScreenLoader(false)
+  //   })
+  // } else {
+  // 注意：移动端不支持选择目录
+  selectDir()
+    .then((files) => {
+      useFullScreenLoader(true)
+      return dealFilesFormList(files)
     })
-  }
+    .then((fileMap) => {
+      if (Object.keys(fileMap).length === 0) {
+        throw 'The directory is empty'
+      }
+      console.log(fileMap)
+      useFilesInfo('syncDir', fileMap)
+      router.push(localePath('/sender'))
+      useFullScreenLoader(false)
+    })
+    .catch((e) => {
+      console.warn(e)
+      toast.add({ severity: 'error', summary: 'Error', detail: e, life: 3000 })
+      useFullScreenLoader(false)
+    })
+  // }
 }
 
 function sendDir() {
-  if (isModernFileAPISupport.value) {
-    showDirectoryPicker()
-      .then((fh) => {
-        useFullScreenLoader(true)
-        return dealFilesFromHandler(fh)
-      })
-      .then((fileMap) => {
-        if (Object.keys(fileMap).length === 0) {
-          throw '目录为空'
-        }
-        useFilesInfo('transDir', fileMap)
-      })
-      .then(() => {
-        router.push(localePath('/sender'))
-        useFullScreenLoader(false)
-      })
-      .catch((e) => {
-        console.warn(e)
-        toast.add({ severity: 'error', summary: 'Error', detail: e, life: 3000 })
-        useFullScreenLoader(false)
-      })
-  } else {
-    // 注意：移动端不支持选择目录
-    selectDir((files) => {
-      useFilesInfo('transDir', dealFilesFormList(files))
+  // 注意：移动端不支持选择目录
+  selectDir()
+    .then((files) => dealFilesFormList(files))
+    .then((fileMap) => {
+      if (Object.keys(fileMap).length === 0) {
+        throw '目录为空'
+      }
+      useFilesInfo('transDir', fileMap)
       router.push(localePath('/sender'))
+      useFullScreenLoader(false)
     })
-  }
+    .catch((e) => {
+      console.warn(e)
+      toast.add({ severity: 'error', summary: 'Error', detail: e, life: 3000 })
+      useFullScreenLoader(false)
+    })
 }
 
 function sendFile() {
-  selectFile((file) => {
-    useFilesInfo('transFile', dealFilesFormFile(file))
-    router.push(localePath('/sender'))
-  })
+  selectFile()
+    .then((file) => {
+      useFilesInfo('transFile', dealFilesFormFile(file))
+      router.push(localePath('/sender'))
+    })
+    .catch((e) => {
+      console.warn(e)
+      toast.add({ severity: 'error', summary: 'Error', detail: e, life: 3000 })
+      useFullScreenLoader(false)
+    })
 }
 
 watch(
@@ -102,7 +109,7 @@ onMounted(() => {
       class="fixed top-0 left-0 right-0 bottom-0 inset-0 -z-50 h-full w-full bg-white dark:bg-zinc-950 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#25272b_1px,transparent_1px)] [background-size:16px_16px]"
     ></div>
     <div class="py-6 px-8 text-center">
-      <h1 class="md:text-6xl text-5xl tracking-wider font-serif">Fast Sync</h1>
+      <h1 class="md:text-6xl text-5xl tracking-wider font-serif">Fast Send</h1>
       <p
         class="mt-6 leading-6 tracking-wider text-sm md:text-base text-gray-600 dark:text-gray-200"
       >
@@ -124,12 +131,12 @@ onMounted(() => {
         </h2>
 
         <Button
+          outlined
           rounded
           class="block w-full tracking-wider"
           severity="contrast"
-          :disabled="!isModernFileAPISupport"
-          @click="syncDir"
-          ><Icon name="solar:refresh-square-broken" class="mr-2" />目录同步</Button
+          @click="sendFile"
+          ><Icon name="solar:file-line-duotone" class="mr-2" />发送文件</Button
         >
         <Button
           outlined
@@ -141,12 +148,12 @@ onMounted(() => {
           ><Icon name="solar:folder-with-files-line-duotone" class="mr-2" />发送目录</Button
         >
         <Button
-          outlined
           rounded
           class="block w-full tracking-wider"
           severity="contrast"
-          @click="sendFile"
-          ><Icon name="solar:file-line-duotone" class="mr-2" />发送文件</Button
+          :disabled="!isModernFileAPISupport"
+          @click="syncDir"
+          ><Icon name="solar:refresh-square-broken" class="mr-2" />目录同步</Button
         >
       </div>
 
