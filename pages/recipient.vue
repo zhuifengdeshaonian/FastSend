@@ -38,11 +38,15 @@ function initPDC() {
 
     await pdc?.sendData('hello')
 
-    let u8a = new Uint8Array(5 * 1024 * 1024)
-    for (let i = 0; i < u8a.length; i++) {
-      u8a[i] = Math.floor(Math.random() * 256)
+    for (let m = 0; m < 10; m++) {
+      console.log(m)
+
+      let u8a = new Uint8Array(10e6)
+      for (let i = 0; i < u8a.length; i++) {
+        u8a[i] = Math.floor(Math.random() * 256)
+      }
+      await pdc?.sendData(u8a.buffer)
     }
-    await pdc?.sendData(u8a.buffer)
   }
   pdc.onRecive = (data) => {
     console.log('data', data)

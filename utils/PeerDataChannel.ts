@@ -47,31 +47,34 @@ export class PeerDataChannel {
   }
 
   private async onData(data: any) {
-    if (this.reciveData.offset === this.reciveData.count) {
+    const reciveData = this.reciveData
+    if (reciveData.offset === reciveData.count) {
       const dat = JSON.parse(data)
-      this.reciveData.startTime = new Date().getTime()
-      this.reciveData.offset = 0
-      this.reciveData.count = dat.count
-      this.reciveData.type = dat.type
-      this.reciveData.chunks = []
+      this.reciveData = {
+        startTime: new Date().getTime(),
+        offset: 0,
+        count: dat.count,
+        type: dat.type,
+        chunks: []
+      }
     } else {
-      this.reciveData.chunks.push(data)
-      this.reciveData.offset++
-      if (this.reciveData.offset === this.reciveData.count) {
+      reciveData.chunks.push(data)
+      reciveData.offset++
+      if (reciveData.offset === reciveData.count) {
         const endTime = new Date().getTime()
-        const b = new Blob(this.reciveData.chunks)
-        if (this.reciveData.type === 'string') {
+        const b = new Blob(reciveData.chunks)
+        if (reciveData.type === 'string') {
           this.onRecive(await b.text(), {
             size: b.size,
-            duration: endTime - this.reciveData.startTime
+            duration: endTime - reciveData.startTime
           })
         } else {
           this.onRecive(await b.arrayBuffer(), {
             size: b.size,
-            duration: endTime - this.reciveData.startTime
+            duration: endTime - reciveData.startTime
           })
         }
-        this.reciveData.chunks = []
+        reciveData.chunks = []
       }
     }
   }
@@ -100,8 +103,9 @@ export class PeerDataChannel {
               )
             )
             offset++
-          } else {
-            resolve()
+            if (offset >= count) {
+              resolve()
+            }
           }
         }
         count = Math.floor(data.length / PeerDataChannel.BLOCK_SIZE) + 1
@@ -116,8 +120,9 @@ export class PeerDataChannel {
               )
             )
             offset++
-          } else {
-            resolve()
+            if (offset >= count) {
+              resolve()
+            }
           }
         }
         count = Math.floor(data.byteLength / PeerDataChannel.BLOCK_SIZE) + 1

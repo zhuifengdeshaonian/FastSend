@@ -27,6 +27,9 @@ const initedPool = new TTLCache<string, any>({
 function disposePeer(peer: any) {
   initPool.delete(peer.id)
   peer.ctx.node.ws.close()
+  if (peer.pairPeer && peer.pairPeer.readyState === 1) {
+    disposePeer(peer.pairPeer)
+  }
 }
 
 // 初始化发送端
