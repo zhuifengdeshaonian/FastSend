@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import CryptoJs from 'crypto-js'
 import { PeerDataChannel } from '~/utils/PeerDataChannel'
 
 const localePath = useLocalePath()
 const router = useRouter()
 const toast = useToast()
+const userInfo = useUserInfo()
+const peerUserInfo = ref({ nickname: '', avatarURL: '' })
 const filesInfo = useFilesInfo()
 const code = ref('')
 const status = ref({
@@ -18,6 +21,15 @@ let pdc: PeerDataChannel | null
 function dispose() {
   ws?.close()
   pdc?.dispose()
+}
+
+async function handleObjData(obj: any) {
+  console.log(obj)
+  if (obj.type === 'user') {
+    peerUserInfo.value = obj.data
+    await pdc?.sendData(JSON.stringify({ type: 'user', data: userInfo.value }))
+    await pdc?.sendData(JSON.stringify({ type: 'files', data: filesInfo.value }))
+  }
 }
 
 function initPDC() {
@@ -37,10 +49,12 @@ function initPDC() {
     status.value.isConnectPeer = true
   }
   pdc.onRecive = (data, info) => {
-    console.log('data', data)
-    console.log(info.size, info.duration, info.size / (info.duration / 1e3))
+    // console.log('data', data)
+    // console.log(info.size, info.duration, info.size / (info.duration / 1e3))
 
-    // todo
+    if (typeof data === 'string') {
+      handleObjData(JSON.parse(data))
+    }
   }
 }
 
@@ -91,5 +105,7 @@ onUnmounted(() => {
     <p>{{ status }}</p>
 
     <p>{{ code }}</p>
+
+    <p>{{ peerUserInfo }}</p>
   </div>
 </template>
