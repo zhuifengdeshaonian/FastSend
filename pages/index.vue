@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 const localePath = useLocalePath()
 const router = useRouter()
 const toast = useToast()
 const isModernFileAPISupport = ref(true)
-const inputCode = ref('')
+const reciveCode = ref('')
 
 function syncDir() {
   // if (isModernFileAPISupport.value) {
@@ -82,14 +82,13 @@ function sendFile() {
 }
 
 watch(
-  inputCode,
+  reciveCode,
   () => {
-    if (inputCode.value.length === 4) {
-      if (/^\d{4}$/.test(inputCode.value)) {
-        console.log(114)
-        // do
+    if (reciveCode.value.length === 4) {
+      if (/^\d{4}$/.test(reciveCode.value)) {
+        router.push({ path: localePath('recipient'), query: { code: reciveCode.value } })
       } else {
-        inputCode.value = inputCode.value.replaceAll(' ', '')
+        reciveCode.value = reciveCode.value.replaceAll(' ', '')
       }
     }
     // console.log(inputCode.value)
@@ -111,7 +110,7 @@ onMounted(() => {
     <div class="py-6 px-8 text-center">
       <h1 class="md:text-6xl text-5xl tracking-wider font-serif">Fast Send</h1>
       <p
-        class="mt-6 leading-6 tracking-wider text-sm md:text-base text-gray-600 dark:text-gray-200"
+        class="mt-6 leading-6 tracking-widest text-sm md:text-base text-gray-600 dark:text-gray-200"
       >
         {{ $t('description') }}
       </p>
@@ -159,10 +158,10 @@ onMounted(() => {
 
       <div class="flex flex-col items-center space-y-6 mt-8 md:mt-0">
         <h2 class="text-2xl tracking-wider flex flex-row items-center gap-2">
-          <Icon name="solar:card-recive-linear" />{{ $t('label.recive') }}
+          <Icon name="solar:card-recive-linear" />{{ $t('label.reciveCode') }}
         </h2>
 
-        <InputOtp integerOnly v-model:model-value="inputCode" class="gap-4">
+        <InputOtp integerOnly v-model:model-value="reciveCode" class="gap-4">
           <template #default="{ attrs, events, index }">
             <input
               :autofocus="index === 1"

@@ -106,7 +106,7 @@ export async function selectDir() {
  * @param accept 接受的MIME类型
  * @returns
  */
-export async function selectFile(accept: string | undefined) {
+export async function selectFile(accept?: string) {
   return new Promise<File>((resolve, reject) => {
     if (typeof document === 'undefined') {
       reject()

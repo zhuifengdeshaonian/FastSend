@@ -95,7 +95,7 @@ export default defineWebSocketHandler({
           disposePeer(peer)
         }
       } else if (peer.pairPeer) {
-        peer.pairPeer.send(msg)
+        peer.pairPeer.send(msg.text())
       } else {
         disposePeer(peer)
       }

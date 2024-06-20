@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const localePath = useLocalePath()
 const { locale, setLocale } = useI18n()
 const colorMode = useColorMode()
 const isBgBlur = ref(false)
@@ -85,7 +86,9 @@ onMounted(() => {
     class="flex flex-row items-center py-3 px-4 md:py-4 md:px-[10vw] sticky left-0 right-0 top-0 z-50 nav-bar"
     :class="{ 'backdrop-blur': isBgBlur }"
   >
-    <div class="tracking-wider">FastSend</div>
+    <NuxtLink :to="localePath('/')">
+      <div class="tracking-wider">FastSend</div>
+    </NuxtLink>
 
     <div class="flex-1"></div>
 
@@ -94,25 +97,34 @@ onMounted(() => {
         :image="userInfo.avatarURL"
         shape="circle"
         class="shadow cursor-pointer"
-        @click="editAvatar"
+        @click="showNicknameEditor"
       />
-      <p @click="showNicknameEditor" class="cursor-pointer ml-2 md:ml-3 truncate shrink-[1000]">
+      <p class="ml-2 truncate shrink-[1000]">
         {{ userInfo.nickname }}
       </p>
     </div>
     <OverlayPanel ref="op">
-      <InputGroup>
-        <InputText
-          severity="contrast"
-          size="small"
-          placeholder="昵称"
-          v-model:model-value="tmpNickname"
-          @keydown.enter="editNickname"
+      <div class="flex flex-col items-center gap-4">
+        <Avatar
+          :image="userInfo.avatarURL"
+          shape="circle"
+          class="shadow-md cursor-pointer"
+          size="xlarge"
+          @click="editAvatar"
         />
-        <Button severity="contrast" size="small" class="m-0" @click="editNickname"
-          ><Icon name="material-symbols:check-rounded"
-        /></Button>
-      </InputGroup>
+        <InputGroup>
+          <InputText
+            severity="contrast"
+            size="small"
+            placeholder="昵称"
+            v-model:model-value="tmpNickname"
+            @keydown.enter="editNickname"
+          />
+          <Button severity="contrast" size="small" class="m-0" @click="editNickname"
+            ><Icon name="material-symbols:check-rounded"
+          /></Button>
+        </InputGroup>
+      </div>
     </OverlayPanel>
 
     <div class="contents">
