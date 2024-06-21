@@ -1,5 +1,5 @@
 export class PeerDataChannel {
-  private static BLOCK_SIZE = 65536
+  private static BLOCK_SIZE = 32768
   private pc: RTCPeerConnection
   private dc: RTCDataChannel | null = null
   private reciveData: {
@@ -91,12 +91,13 @@ export class PeerDataChannel {
         reject()
         return
       }
+      const dc = this.dc
       let offset = 0
       let count = 0
       if (typeof data === 'string') {
-        this.dc.onbufferedamountlow = () => {
+        dc.onbufferedamountlow = () => {
           if (offset < count) {
-            this.dc?.send(
+            dc.send(
               data.substring(
                 PeerDataChannel.BLOCK_SIZE * offset,
                 PeerDataChannel.BLOCK_SIZE * (offset + 1)
@@ -109,24 +110,32 @@ export class PeerDataChannel {
           }
         }
         count = Math.floor(data.length / PeerDataChannel.BLOCK_SIZE) + 1
-        this.dc.send(JSON.stringify({ count: count, type: 'string' }))
+        dc.send(JSON.stringify({ count: count, type: 'string' }))
       } else {
-        this.dc.onbufferedamountlow = () => {
-          if (offset < count) {
-            this.dc?.send(
-              data.slice(
-                PeerDataChannel.BLOCK_SIZE * offset,
-                PeerDataChannel.BLOCK_SIZE * (offset + 1)
+        dc.onbufferedamountlow = () => {
+          if (count - offset > 32) {
+            dc.bufferedAmountLowThreshold = 32 * PeerDataChannel.BLOCK_SIZE
+          } else {
+            dc.bufferedAmountLowThreshold = 0
+          }
+          for (let i = 0; i < 64; i++) {
+            if (offset < count) {
+              dc.send(
+                data.slice(
+                  PeerDataChannel.BLOCK_SIZE * offset,
+                  PeerDataChannel.BLOCK_SIZE * (offset + 1)
+                )
               )
-            )
-            offset++
-            if (offset >= count) {
-              resolve()
+              offset++
+              if (offset >= count) {
+                resolve()
+                break
+              }
             }
           }
         }
         count = Math.floor(data.byteLength / PeerDataChannel.BLOCK_SIZE) + 1
-        this.dc.send(JSON.stringify({ count: count, type: 'ArrayBuffer' }))
+        dc.send(JSON.stringify({ count: count, type: 'ArrayBuffer' }))
       }
     })
   }

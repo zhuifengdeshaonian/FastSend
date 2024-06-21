@@ -9,7 +9,7 @@ export default {
             'border-none',
 
             // Color
-            'bg-surface-0 dark:bg-surface-900',
+            'bg-surface-100/80 dark:bg-surface-900/60',
             'text-surface-700 dark:text-white/80'
         ]
     },

@@ -44,7 +44,12 @@ watch(isFullScreenLoading, (isLoad) => {
 .loader {
   width: 100px;
   height: 40px;
-  --g: radial-gradient(farthest-side, #0000 calc(95% - 3px), #fff calc(100% - 3px) 98%, #0000 101%)
+  --g: radial-gradient(
+      farthest-side,
+      transparent calc(95% - 3px),
+      #fff calc(100% - 3px) 98%,
+      transparent 101%
+    )
     no-repeat;
   background: var(--g), var(--g), var(--g);
   background-size: 30px 30px;

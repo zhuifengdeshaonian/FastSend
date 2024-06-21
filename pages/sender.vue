@@ -50,7 +50,7 @@ function initPDC() {
   }
   pdc.onRecive = (data, info) => {
     // console.log('data', data)
-    // console.log(info.size, info.duration, info.size / (info.duration / 1e3))
+    console.log(info.size, info.duration, info.size / (info.duration / 1e3))
 
     if (typeof data === 'string') {
       handleObjData(JSON.parse(data))
