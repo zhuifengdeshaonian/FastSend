@@ -10,4 +10,5 @@ onMounted(() => {
   <Toast position="top-right" />
   <NavBar />
   <NuxtPage />
+  <ScrollTop />
 </template>

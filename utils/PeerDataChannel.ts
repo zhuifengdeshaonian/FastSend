@@ -192,6 +192,14 @@ export class PeerDataChannel {
     return this.pc.connectionState === 'connected'
   }
 
+  public getReciviedBufferSize() {
+    let size = 0
+    this.reciveData.chunks.forEach(
+      (dat) => (size += typeof dat === 'string' ? dat.length : dat.byteLength)
+    )
+    return size
+  }
+
   /**
    * 销毁节点并清理资源
    */

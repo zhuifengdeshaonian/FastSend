@@ -3,30 +3,62 @@ import CryptoJs from 'crypto-js'
 import { PeerDataChannel } from '~/utils/PeerDataChannel'
 
 const localePath = useLocalePath()
+const toast = useToast()
 const router = useRouter()
 const userInfo = useUserInfo()
 const peerUserInfo = ref({ nickname: 'unknown', avatarURL: '' })
-const peerFilesInfo = ref({ type: '', fileMap: {} })
+const peerFilesInfo = ref<any>({ type: '', fileMap: {} })
+const selectedKeys = ref({})
 const code = ref('')
+const waitReciveFileList = ref<string[]>([])
+const reciveFileIndex = ref(0)
+const totalFileSize = ref(0)
+const totalTransmittedBytes = ref(0)
+const startTime = ref(0)
+const totalSpeed = ref(0)
+const curFile = ref<any>({
+  name: '',
+  size: 0,
+  transmittedBytes: 0,
+  lastBytes: 0,
+  speed: 0,
+  chunks: []
+})
 const status = ref({
   isConnectServer: false,
   isConnectPeer: false,
   isPeerConnecting: false,
   isIniting: true,
   isLock: false,
+  isReceiving: false,
+  isDone: false,
   error: {
     code: 0,
     msg: ''
   }
 })
 
+let calcSpeedJobId: number | undefined
 let ws: WebSocket | null
 let pdc: PeerDataChannel | null
+let saveFileFH: FileSystemFileHandle | null
+let curFileWriter: FileSystemWritableFileStream | null
+let rootDirDH: FileSystemDirectoryHandle | null
 
 function dispose() {
   ws?.close()
   pdc?.dispose()
+  clearInterval(calcSpeedJobId)
 }
+
+function calcSpeedFn() {
+  const curBytes = curFile.value.transmittedBytes + pdc?.getReciviedBufferSize()
+  curFile.value.speed = curBytes - curFile.value.lastSize
+  curFile.value.lastSize = curBytes
+  totalSpeed.value = totalTransmittedBytes.value / ((new Date().getTime() - startTime.value) / 1e3)
+}
+
+function handleBufferData(buf: ArrayBuffer) {}
 
 async function handleObjData(obj: any) {
   console.log(obj)
@@ -34,6 +66,23 @@ async function handleObjData(obj: any) {
     peerUserInfo.value = obj.data
   } else if (obj.type === 'files') {
     peerFilesInfo.value = obj.data
+    if (peerFilesInfo.value.type === 'transFile') {
+      const fm = peerFilesInfo.value.fileMap
+      const fileNames = Object.keys(fm)
+      if (fileNames.length === 0) {
+        throw new Error('File not found')
+      }
+      const fileName = fileNames[0]
+      curFile.value = {
+        name: fileName,
+        size: fm[fileName]?.size || 0,
+        transmittedBytes: 0,
+        lastSize: 0,
+        speed: 0,
+        chunks: []
+      }
+      totalFileSize.value = curFile.value.size
+    }
     status.value.isIniting = false
   }
 }
@@ -46,6 +95,8 @@ function initPDC() {
     ws?.send(JSON.stringify({ type: 'candidate', data: candidate }))
   pdc.onDispose = () => {
     status.value.isConnectPeer = false
+    dispose()
+    toast.add({ severity: 'warn', summary: 'Warn', detail: 'Disconnected', life: 5000 })
   }
   pdc.onError = (err) => {
     console.error(err)
@@ -55,25 +106,47 @@ function initPDC() {
       status.value.error.code = 500
       status.value.error.msg = err + ''
     }
+    dispose()
+    toast.add({ severity: 'error', summary: 'Error', detail: err + '', life: 5000 })
   }
   pdc.onConnected = () => {
     status.value.isConnectPeer = true
     status.value.isPeerConnecting = false
   }
-  pdc.onOpen = async () => {
-    await pdc?.sendData(JSON.stringify({ type: 'user', data: userInfo.value }))
-
-    // let u8a = new Uint8Array(10e6)
-    // for (let i = 0; i < 10; i++) {
-    //   await pdc?.sendData(u8a.buffer)
-    // }
-  }
+  pdc.onOpen = () => pdc?.sendData(JSON.stringify({ type: 'user', data: userInfo.value }))
   pdc.onRecive = (data) => {
     // console.log('data', data)
     if (typeof data === 'string') {
       handleObjData(JSON.parse(data))
+    } else {
+      handleBufferData(data)
     }
   }
+}
+
+function doRecive() {
+  if (status.value.isReceiving) {
+    return
+  }
+  status.value.isReceiving = true
+
+  if (peerFilesInfo.value.type !== 'transFile') {
+    waitReciveFileList.value = Object.keys(selectedKeys.value).filter((n) => !/\/$/.test(n))
+    if (waitReciveFileList.value.length === 0) {
+      toast.add({ severity: 'warn', summary: 'Warn', detail: '请至少选择一个文件', life: 3e3 })
+      status.value.isReceiving = false
+      return
+    }
+  }
+  status.value.isLock = true
+
+  reciveFileIndex.value = 0
+  waitReciveFileList.value.forEach((name) => {
+    totalFileSize.value += peerFilesInfo.value.fileMap[name]?.size
+  })
+  totalTransmittedBytes.value = 0
+  startTime.value = new Date().getTime()
+  setInterval(calcSpeedFn, 1e3)
 }
 
 onMounted(() => {
@@ -120,10 +193,12 @@ onUnmounted(() => {
 
 <template>
   <div>
+    <!-- error -->
     <div v-if="status.error.code !== 0">
       <div v-if="status.error.code === 404">404</div>
     </div>
 
+    <!-- loading -->
     <div v-else-if="status.isIniting" class="flex flex-col gap-4 items-center justify-center py-20">
       <div class="loader"></div>
       <p class="text-xs">连接中</p>
@@ -134,7 +209,7 @@ onUnmounted(() => {
       <div>
         <!-- peer user -->
         <div
-          class="p-3 shadow shadow-black/20 dark:bg-neutral-900 rounded-full flex flex-row items-center"
+          class="p-2 pr-3 md:p-3 md:pr-5 shadow shadow-black/20 dark:bg-neutral-900 rounded-full flex flex-row items-center"
         >
           <Avatar
             :image="peerUserInfo.avatarURL"
@@ -142,7 +217,7 @@ onUnmounted(() => {
             size="large"
             class="shadow shadow-black/15"
           />
-          <span class="ml-2 text-base flex-1">{{ peerUserInfo.nickname }}</span>
+          <span class="ml-3 text-base flex-1">{{ peerUserInfo.nickname }}</span>
 
           <Icon
             v-if="status.isConnectPeer"
@@ -158,24 +233,82 @@ onUnmounted(() => {
           />
         </div>
 
-        <!-- file tree -->
-        <FilesTree class="mt-4" />
+        <!-- file list -->
+        <div class="mt-4 md:mt-6">
+          <div v-if="peerFilesInfo.type === 'transFile'" class="flex flex-col items-center mt-8">
+            <Icon name="material-symbols-light:unknown-document-outline-rounded" size="64" />
+            <p>{{ curFile.name }}</p>
+            <p>{{ humanFileSize(curFile.size) }}</p>
+          </div>
+          <FilesTree
+            v-else
+            :file-map="peerFilesInfo.fileMap"
+            :disabled="status.isLock"
+            v-model:selected-key="selectedKeys"
+          />
+        </div>
       </div>
 
       <!-- right bottom panel -->
-      <div>
-        <div>你收到了来自 ？ 的文件</div>
+      <div class="mt-6 md:mt-0">
+        <div>
+          <p class="text-sm mt-2">{{ curFile.name }}</p>
+          <ProgressBar
+            :value="
+              Math.round(curFile.size === 0 ? 0 : (curFile.transmittedBytes / curFile.size) * 100)
+            "
+          />
+          <p class="text-right">
+            <span>{{ humanFileSize(curFile.speed) }}/s</span
+            ><span class="ml-4">{{ humanFileSize(curFile.transmittedBytes) }}</span
+            ><span class="mx-1">/</span><span>{{ humanFileSize(curFile.size) }}</span>
+          </p>
+
+          <p class="text-sm mt-4">总进度</p>
+          <ProgressBar
+            :value="
+              Math.round(totalFileSize === 0 ? 0 : (totalTransmittedBytes / totalFileSize) * 100)
+            "
+          />
+          <p class="text-right">
+            <span>{{ humanFileSize(totalSpeed) }}/s</span
+            ><span class="ml-4">{{ humanFileSize(totalTransmittedBytes) }}</span
+            ><span class="mx-1">/</span><span>{{ humanFileSize(totalFileSize) }}</span>
+          </p>
+        </div>
+
+        <div class="my-16">
+          <Button
+            v-if="!status.isLock"
+            rounded
+            severity="contrast"
+            class="w-full tracking-wider"
+            :disabled="!status.isConnectPeer || status.isReceiving"
+            @click="doRecive"
+            ><Icon name="solar:archive-down-minimlistic-line-duotone" class="mr-2" />接收</Button
+          >
+          <Button
+            v-if="status.isReceiving"
+            rounded
+            outlined
+            severity="danger"
+            class="w-full tracking-wider"
+            >终止</Button
+          >
+          <Button
+            v-else-if="status.isDone"
+            rounded
+            severity="contrast"
+            class="w-full tracking-wider"
+            >回首页</Button
+          >
+        </div>
+
+        <!-- <p>{{ totalFileSize }}</p>
+          <p>{{ totalTransmittedBytes }}</p>
+          <p>{{ waitReciveFileList }}</p> -->
       </div>
     </div>
-
-    recipient
-    <p>{{ status }}</p>
-
-    <p>{{ code }}</p>
-
-    <p>{{ peerUserInfo }}</p>
-
-    <p>{{ peerFilesInfo }}</p>
   </div>
 </template>
 

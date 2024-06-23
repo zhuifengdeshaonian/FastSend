@@ -14,7 +14,7 @@ export default {
         ]
     },
     wrapper: {
-        class: ['overflow-auto']
+        class: ['overflow-auto','max-h-[61vh]']
     },
     container: {
         class: [
