@@ -29,6 +29,25 @@ async function handleObjData(obj: any) {
     peerUserInfo.value = obj.data
     await pdc?.sendData(JSON.stringify({ type: 'user', data: userInfo.value }))
     await pdc?.sendData(JSON.stringify({ type: 'files', data: filesInfo.value }))
+  } else if (obj.type === 'reqFile') {
+    const file = filesInfo.value.fileMap[obj.data]?.file
+    // console.log(file)
+
+    if (!file) {
+      await pdc?.sendData(JSON.stringify({ type: 'err', data: 'File not found' }))
+    }
+    // 计算分片数量
+    const sliceSize = 1024 * 1024
+    const count = file.size / sliceSize + 1
+    for (let i = 0; i < count; i++) {
+      // console.log('i', i)
+      const ab = await file.slice(i * sliceSize, (i + 1) * sliceSize).arrayBuffer()
+
+      if (ab.byteLength > 0) {
+        // todo
+        await pdc?.sendData(ab)
+      }
+    }
   }
 }
 
@@ -39,10 +58,12 @@ function initPDC() {
     ws?.send(JSON.stringify({ type: 'candidate', data: candidate }))
   pdc.onDispose = () => {
     status.value.isConnectPeer = false
+    dispose()
   }
   pdc.onError = (err) => {
     console.error(err)
     status.value.isConnectPeer = false
+    dispose()
   }
   pdc.onConnected = () => {
     console.log('onConnected')
@@ -50,7 +71,7 @@ function initPDC() {
   }
   pdc.onRecive = (data, info) => {
     // console.log('data', data)
-    console.log(info.size, info.duration, info.size / (info.duration / 1e3))
+    // console.log(info.size, info.duration, info.size / (info.duration / 1e3))
 
     if (typeof data === 'string') {
       handleObjData(JSON.parse(data))

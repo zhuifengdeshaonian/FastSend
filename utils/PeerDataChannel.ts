@@ -113,12 +113,12 @@ export class PeerDataChannel {
         dc.send(JSON.stringify({ count: count, type: 'string' }))
       } else {
         dc.onbufferedamountlow = () => {
-          if (count - offset > 32) {
-            dc.bufferedAmountLowThreshold = 32 * PeerDataChannel.BLOCK_SIZE
+          if (count - offset > 16) {
+            dc.bufferedAmountLowThreshold = 16 * PeerDataChannel.BLOCK_SIZE
           } else {
             dc.bufferedAmountLowThreshold = 0
           }
-          for (let i = 0; i < 64; i++) {
+          for (let i = 0; i < 32; i++) {
             if (offset < count) {
               dc.send(
                 data.slice(

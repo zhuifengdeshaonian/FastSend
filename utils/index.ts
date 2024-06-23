@@ -115,3 +115,25 @@ export function humanFileSize(bytes: number, decimals = 2) {
   var i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + sizes[i]
 }
+
+export function doDownloadFromHref(href: string, filename: string) {
+  const a = document.createElement('a')
+  a.style.display = 'none'
+  a.href = href
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
+
+/**
+ * 从Blob下载
+ *
+ * @param {Blob} blob
+ * @param {string} filename
+ */
+export function doDownloadFromBlob(blob: Blob | File, filename: string) {
+  const objUrl = URL.createObjectURL(blob)
+  doDownloadFromHref(objUrl, filename)
+  URL.revokeObjectURL(objUrl)
+}

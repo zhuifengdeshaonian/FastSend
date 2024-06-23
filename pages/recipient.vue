@@ -3,6 +3,7 @@ import CryptoJs from 'crypto-js'
 import { PeerDataChannel } from '~/utils/PeerDataChannel'
 
 const localePath = useLocalePath()
+const isModernFileAPISupport = ref(true)
 const toast = useToast()
 const router = useRouter()
 const userInfo = useUserInfo()
@@ -38,14 +39,21 @@ const status = ref({
   }
 })
 
-let calcSpeedJobId: number | undefined
+let calcSpeedJobId: any
 let ws: WebSocket | null
 let pdc: PeerDataChannel | null
 let saveFileFH: FileSystemFileHandle | null
-let curFileWriter: FileSystemWritableFileStream | null
+let curFileWriter: FileSystemWritableFileStream | undefined
 let rootDirDH: FileSystemDirectoryHandle | null
+let reqFileResolveFn: () => void | undefined
+let reqFileRejecteFn: () => void | undefined
 
 function dispose() {
+  console.log('dispose')
+
+  if (reqFileRejecteFn) {
+    reqFileRejecteFn()
+  }
   ws?.close()
   pdc?.dispose()
   clearInterval(calcSpeedJobId)
@@ -58,7 +66,35 @@ function calcSpeedFn() {
   totalSpeed.value = totalTransmittedBytes.value / ((new Date().getTime() - startTime.value) / 1e3)
 }
 
-function handleBufferData(buf: ArrayBuffer) {}
+// 对于不支持现代文件访问API的备用下载方法
+function downloadFile() {
+  doDownloadFromBlob(new Blob(curFile.value.chunks), curFile.value.name)
+}
+
+function handleBufferData(buf: ArrayBuffer) {
+  curFile.value.transmittedBytes += buf.byteLength
+  totalTransmittedBytes.value += buf.byteLength
+  if (isModernFileAPISupport.value) {
+    curFileWriter?.write(buf)
+    if (curFile.value.transmittedBytes === curFile.value.size) {
+      // 该文件传输完毕
+      curFileWriter?.close()
+      if (reqFileResolveFn) {
+        reqFileResolveFn()
+      }
+    }
+  } else {
+    curFile.value.chunks.push(buf)
+    if (curFile.value.transmittedBytes === curFile.value.size) {
+      // 文件传输完毕
+      if (reqFileResolveFn) {
+        reqFileResolveFn()
+      }
+      // 触发下载
+      downloadFile()
+    }
+  }
+}
 
 async function handleObjData(obj: any) {
   console.log(obj)
@@ -82,8 +118,16 @@ async function handleObjData(obj: any) {
         chunks: []
       }
       totalFileSize.value = curFile.value.size
+    } else if (!isModernFileAPISupport.value) {
+      status.value.error.code = -1
+      status.value.error.msg = 'Unsupport dir transport'
+      dispose()
+      return
     }
     status.value.isIniting = false
+  } else if (obj.type === 'err') {
+    console.warn(obj.data)
+    toast.add({ severity: 'warn', summary: 'Warn', detail: obj.data, life: 3e3 })
   }
 }
 
@@ -94,6 +138,8 @@ function initPDC() {
   pdc.onICECandidate = (candidate) =>
     ws?.send(JSON.stringify({ type: 'candidate', data: candidate }))
   pdc.onDispose = () => {
+    console.log('onDispose')
+
     status.value.isConnectPeer = false
     dispose()
     toast.add({ severity: 'warn', summary: 'Warn', detail: 'Disconnected', life: 5000 })
@@ -124,7 +170,15 @@ function initPDC() {
   }
 }
 
-function doRecive() {
+async function requestFile(key: string) {
+  return new Promise<void>((resolve, reject) => {
+    reqFileResolveFn = resolve
+    reqFileRejecteFn = reject
+    pdc?.sendData(JSON.stringify({ type: 'reqFile', data: key }))
+  })
+}
+
+async function doRecive() {
   if (status.value.isReceiving) {
     return
   }
@@ -146,10 +200,34 @@ function doRecive() {
   })
   totalTransmittedBytes.value = 0
   startTime.value = new Date().getTime()
-  setInterval(calcSpeedFn, 1e3)
+  calcSpeedJobId = setInterval(calcSpeedFn, 1e3)
+
+  try {
+    if (peerFilesInfo.value.type === 'transFile') {
+      if (isModernFileAPISupport.value) {
+        saveFileFH = await showSaveFilePicker({
+          startIn: 'downloads',
+          suggestedName: curFile.value.name
+        })
+        curFileWriter = await saveFileFH?.createWritable()
+      }
+      await requestFile(curFile.value.name)
+      status.value.isReceiving = false
+      status.value.isDone = true
+      dispose()
+    } else {
+      rootDirDH = await showDirectoryPicker()
+      // todo
+    }
+  } catch (e) {
+    console.warn(e)
+    toast.add({ severity: 'error', summary: 'Error', detail: e })
+    status.value.isLock = status.value.isReceiving = false
+  }
 }
 
 onMounted(() => {
+  isModernFileAPISupport.value = isModernFileAPIAvailable()
   const query = router.currentRoute.value.query
   if (!query.code) {
     router.replace(localePath('/'))
@@ -196,6 +274,7 @@ onUnmounted(() => {
     <!-- error -->
     <div v-if="status.error.code !== 0">
       <div v-if="status.error.code === 404">404</div>
+      <div v-else>{{ status.error }}</div>
     </div>
 
     <!-- loading -->
@@ -288,7 +367,7 @@ onUnmounted(() => {
             ><Icon name="solar:archive-down-minimlistic-line-duotone" class="mr-2" />接收</Button
           >
           <Button
-            v-if="status.isReceiving"
+            v-else-if="status.isReceiving"
             rounded
             outlined
             severity="danger"
@@ -296,11 +375,18 @@ onUnmounted(() => {
             >终止</Button
           >
           <Button
-            v-else-if="status.isDone"
+            v-if="status.isDone && !isModernFileAPISupport"
             rounded
+            outlined
             severity="contrast"
-            class="w-full tracking-wider"
-            >回首页</Button
+            class="w-full tracking-wider mb-4"
+            @click="downloadFile"
+            >下载</Button
+          >
+          <NuxtLink :to="localePath('/')"
+            ><Button v-if="status.isDone" rounded severity="contrast" class="w-full tracking-wider"
+              >回首页</Button
+            ></NuxtLink
           >
         </div>
 
