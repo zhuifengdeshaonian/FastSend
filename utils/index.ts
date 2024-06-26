@@ -137,3 +137,37 @@ export function doDownloadFromBlob(blob: Blob | File, filename: string) {
   doDownloadFromHref(objUrl, filename)
   URL.revokeObjectURL(objUrl)
 }
+
+export async function copyToClipboard(content: string | ImageData): Promise<void> {
+  // Check if the environment is SSR
+  if (typeof window === 'undefined' || typeof navigator === 'undefined' || !navigator.clipboard) {
+    return
+  }
+
+  try {
+    if (typeof content === 'string') {
+      await navigator.clipboard.writeText(content)
+    } else {
+      const canvas = document.createElement('canvas')
+      canvas.width = content.width
+      canvas.height = content.height
+      const context = canvas.getContext('2d')
+
+      if (!context) {
+        throw new Error('Failed to get canvas context')
+      }
+
+      context.putImageData(content, 0, 0)
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve))
+
+      if (!blob) {
+        throw new Error('Failed to create blob from canvas')
+      }
+
+      const item = new ClipboardItem({ 'image/png': blob })
+      await navigator.clipboard.write([item])
+    }
+  } catch (error) {
+    console.warn(error)
+  }
+}

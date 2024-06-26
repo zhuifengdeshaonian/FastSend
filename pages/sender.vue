@@ -6,13 +6,22 @@ const localePath = useLocalePath()
 const router = useRouter()
 const toast = useToast()
 const userInfo = useUserInfo()
-const peerUserInfo = ref({ nickname: '', avatarURL: '' })
+const peerUserInfo = ref({ nickname: 'unknown', avatarURL: '' })
 const filesInfo = useFilesInfo()
 const code = ref('')
 const status = ref({
+  isIniting: true,
   isConnectServer: false,
   isConnectPeer: false,
-  is404: false
+  isWaitingConnect: true,
+  error: {
+    code: 0,
+    msg: ''
+  },
+  warn: {
+    code: 0,
+    msg: ''
+  }
 })
 
 let ws: WebSocket | null
@@ -48,6 +57,10 @@ async function handleObjData(obj: any) {
         await pdc?.sendData(ab)
       }
     }
+  } else if (obj.type === 'warn') {
+    if (obj.data) {
+      status.value.warn.code = obj.data
+    }
   }
 }
 
@@ -59,6 +72,7 @@ function initPDC() {
   pdc.onDispose = () => {
     status.value.isConnectPeer = false
     dispose()
+    toast.add({ severity: 'warn', summary: 'Warn', detail: 'Disconnected', life: 5000 })
   }
   pdc.onError = (err) => {
     console.error(err)
@@ -68,6 +82,7 @@ function initPDC() {
   pdc.onConnected = () => {
     console.log('onConnected')
     status.value.isConnectPeer = true
+    status.value.isWaitingConnect = false
   }
   pdc.onRecive = (data, info) => {
     // console.log('data', data)
@@ -77,6 +92,16 @@ function initPDC() {
       handleObjData(JSON.parse(data))
     }
   }
+}
+
+async function copyLink() {
+  await copyToClipboard(location.origin + localePath('recipient') + '?code=' + code.value)
+  toast.add({
+    severity: 'success',
+    summary: 'Success',
+    detail: 'Code copied successfully',
+    life: 2e3
+  })
 }
 
 onMounted(() => {
@@ -100,14 +125,25 @@ onMounted(() => {
     if (data.type === 'code') {
       code.value = data.code
       initPDC()
+      status.value.isIniting = false
     } else if (data.type === 'sdp') {
       pdc?.setRemoteSDP(data.data)
     } else if (data.type === 'candidate') {
       pdc?.addICECandidate(data.data)
+    } else if (data.type === 'err') {
+      status.value.error.code = data.data
+      status.value.isWaitingConnect = false
+      toast.add({ severity: 'error', summary: 'Error', detail: data.msg })
+      console.warn(data.msg)
     }
   }
   ws.onclose = () => {
     status.value.isConnectServer = false
+    if (status.value.isWaitingConnect) {
+      status.value.error.code = -10
+      status.value.error.msg = 'Timeout'
+      toast.add({ severity: 'error', summary: 'Error', detail: 'Waiting for timeout' })
+    }
   }
   ws.onerror = (err) => {
     console.error(err)
@@ -122,6 +158,42 @@ onUnmounted(() => {
 
 <template>
   <div>
+    <!-- 错误页面 -->
+    <div v-if="status.error.code !== 0">
+      {{ status.error }}
+    </div>
+
+    <!-- loading -->
+    <div v-else-if="status.isIniting" class="flex flex-col gap-4 items-center justify-center py-20">
+      <div class="loader"></div>
+      <p class="text-xs">连接中</p>
+    </div>
+
+    <!-- 等待链接 -->
+    <div v-else-if="status.isWaitingConnect" class="mt-4">
+      <div class="md:mx-[10vw] p-4 text-center">
+        <p>取件码</p>
+        <p
+          class="mt-4 inline-block text-6xl md:text-7xl tracking-widest border py-4 px-8 border-dashed border-neutral-400 dark:border-neutral-500"
+        >
+          {{ code }}
+        </p>
+      </div>
+
+      <div class="flex flex-row items-center justify-center mt-2">
+        <Button size="small" severity="contrast" @click="copyLink" class="tracking-wider"
+          ><Icon name="solar:link-minimalistic-2-linear" class="mr-2" />复制链接</Button
+        >
+      </div>
+    </div>
+
+    <!-- 发送端主界面 v-else -->
+    <div class="p-4 md:mx-[10vw]">
+      <div class="flex flex-col items-center gap-1">
+        <Avatar shape="circle" size="xlarge" :image="peerUserInfo.avatarURL" />
+        <p>{{ peerUserInfo.nickname }}</p>
+      </div>
+    </div>
     sender
     <p>{{ status }}</p>
 
@@ -130,3 +202,58 @@ onUnmounted(() => {
     <p>{{ peerUserInfo }}</p>
   </div>
 </template>
+
+<style scoped>
+.loader {
+  width: 100px;
+  height: 40px;
+  --g: radial-gradient(
+      farthest-side,
+      transparent calc(95% - 3px),
+      currentColor calc(100% - 3px) 98%,
+      transparent 101%
+    )
+    no-repeat;
+  background: var(--g), var(--g), var(--g);
+  background-size: 30px 30px;
+  animation: l9 1s infinite alternate;
+}
+@keyframes l9 {
+  0% {
+    background-position:
+      0 50%,
+      50% 50%,
+      100% 50%;
+  }
+  20% {
+    background-position:
+      0 0,
+      50% 50%,
+      100% 50%;
+  }
+  40% {
+    background-position:
+      0 100%,
+      50% 0,
+      100% 50%;
+  }
+  60% {
+    background-position:
+      0 50%,
+      50% 100%,
+      100% 0;
+  }
+  80% {
+    background-position:
+      0 50%,
+      50% 50%,
+      100% 100%;
+  }
+  100% {
+    background-position:
+      0 50%,
+      50% 50%,
+      100% 50%;
+  }
+}
+</style>

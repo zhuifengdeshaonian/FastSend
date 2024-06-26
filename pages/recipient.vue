@@ -36,6 +36,10 @@ const status = ref({
   error: {
     code: 0,
     msg: ''
+  },
+  warn: {
+    code: 0,
+    msg: ''
   }
 })
 
@@ -48,6 +52,7 @@ let rootDirDH: FileSystemDirectoryHandle | null
 let reqFileResolveFn: () => void | undefined
 let reqFileRejecteFn: () => void | undefined
 
+// 关闭连接并清理资源
 function dispose() {
   console.log('dispose')
 
@@ -59,6 +64,7 @@ function dispose() {
   clearInterval(calcSpeedJobId)
 }
 
+// 计算传输速度
 function calcSpeedFn() {
   const curBytes = curFile.value.transmittedBytes + pdc?.getReciviedBufferSize()
   curFile.value.speed = curBytes - curFile.value.lastSize
@@ -71,10 +77,12 @@ function downloadFile() {
   doDownloadFromBlob(new Blob(curFile.value.chunks), curFile.value.name)
 }
 
+// 处理文件数据块
 function handleBufferData(buf: ArrayBuffer) {
   curFile.value.transmittedBytes += buf.byteLength
   totalTransmittedBytes.value += buf.byteLength
   if (isModernFileAPISupport.value) {
+    // 支持现代文件访问API，直接写到文件
     curFileWriter?.write(buf)
     if (curFile.value.transmittedBytes === curFile.value.size) {
       // 该文件传输完毕
@@ -84,6 +92,7 @@ function handleBufferData(buf: ArrayBuffer) {
       }
     }
   } else {
+    // 不支持现代文件访问，放到内存中
     curFile.value.chunks.push(buf)
     if (curFile.value.transmittedBytes === curFile.value.size) {
       // 文件传输完毕
@@ -96,13 +105,17 @@ function handleBufferData(buf: ArrayBuffer) {
   }
 }
 
+// 处理JSON数据对象
 async function handleObjData(obj: any) {
   console.log(obj)
   if (obj.type === 'user') {
+    // 用户信息
     peerUserInfo.value = obj.data
   } else if (obj.type === 'files') {
+    // 文件信息
     peerFilesInfo.value = obj.data
     if (peerFilesInfo.value.type === 'transFile') {
+      // 传输单个文件
       const fm = peerFilesInfo.value.fileMap
       const fileNames = Object.keys(fm)
       if (fileNames.length === 0) {
@@ -119,10 +132,12 @@ async function handleObjData(obj: any) {
       }
       totalFileSize.value = curFile.value.size
     } else if (!isModernFileAPISupport.value) {
-      status.value.error.code = -1
-      status.value.error.msg = 'Unsupport dir transport'
+      // 传输目录，但是不支持现代文件访问API，直接报错
+      status.value.warn.code = -1
+      status.value.warn.msg = '不支持目录传输'
+      // 告知对方情况
+      await pdc?.sendData(JSON.stringify({ type: 'warn', data: -1 }))
       dispose()
-      return
     }
     status.value.isIniting = false
   } else if (obj.type === 'err') {
@@ -131,6 +146,7 @@ async function handleObjData(obj: any) {
   }
 }
 
+// 初始化对等数据通道
 function initPDC() {
   status.value.isPeerConnecting = true
   pdc = new PeerDataChannel(undefined, true)
@@ -141,6 +157,10 @@ function initPDC() {
     console.log('onDispose')
 
     status.value.isConnectPeer = false
+    if (status.value.isReceiving) {
+      status.value.warn.code = -2
+      status.value.warn.msg = '连接断开，传输失败'
+    }
     dispose()
     toast.add({ severity: 'warn', summary: 'Warn', detail: 'Disconnected', life: 5000 })
   }
@@ -170,6 +190,7 @@ function initPDC() {
   }
 }
 
+// 请求文件
 async function requestFile(key: string) {
   return new Promise<void>((resolve, reject) => {
     reqFileResolveFn = resolve
@@ -178,6 +199,7 @@ async function requestFile(key: string) {
   })
 }
 
+// 开始接收
 async function doRecive() {
   if (status.value.isReceiving) {
     return
@@ -185,6 +207,7 @@ async function doRecive() {
   status.value.isReceiving = true
 
   if (peerFilesInfo.value.type !== 'transFile') {
+    // 如果传输目录，则至少要选择一个文件
     waitReciveFileList.value = Object.keys(selectedKeys.value).filter((n) => !/\/$/.test(n))
     if (waitReciveFileList.value.length === 0) {
       toast.add({ severity: 'warn', summary: 'Warn', detail: '请至少选择一个文件', life: 3e3 })
@@ -194,16 +217,19 @@ async function doRecive() {
   }
   status.value.isLock = true
 
+  // 初始化参数
   reciveFileIndex.value = 0
   waitReciveFileList.value.forEach((name) => {
     totalFileSize.value += peerFilesInfo.value.fileMap[name]?.size
   })
   totalTransmittedBytes.value = 0
   startTime.value = new Date().getTime()
+  // 启动传输速度计算定时器
   calcSpeedJobId = setInterval(calcSpeedFn, 1e3)
 
   try {
     if (peerFilesInfo.value.type === 'transFile') {
+      // 传输单个文件
       if (isModernFileAPISupport.value) {
         saveFileFH = await showSaveFilePicker({
           startIn: 'downloads',
@@ -214,6 +240,7 @@ async function doRecive() {
       await requestFile(curFile.value.name)
       status.value.isReceiving = false
       status.value.isDone = true
+      calcSpeedFn()
       dispose()
     } else {
       rootDirDH = await showDirectoryPicker()
@@ -234,6 +261,8 @@ onMounted(() => {
     return
   }
   code.value = query.code + ''
+
+  // 初始化信令服务器连接WebSocker
   ws = new WebSocket('/api/connect')
   ws.onopen = () => {
     status.value.isConnectServer = true
@@ -283,7 +312,7 @@ onUnmounted(() => {
       <p class="text-xs">连接中</p>
     </div>
 
-    <div class="md:grid md:grid-cols-2 md:gap-8 px-4 md:px-[10vw]">
+    <div v-else class="md:grid md:grid-cols-2 md:gap-8 px-4 md:px-[10vw]">
       <!-- left top panel -->
       <div>
         <!-- peer user -->
@@ -316,8 +345,10 @@ onUnmounted(() => {
         <div class="mt-4 md:mt-6">
           <div v-if="peerFilesInfo.type === 'transFile'" class="flex flex-col items-center mt-8">
             <Icon name="material-symbols-light:unknown-document-outline-rounded" size="64" />
-            <p>{{ curFile.name }}</p>
-            <p>{{ humanFileSize(curFile.size) }}</p>
+            <p class="text-lg">{{ curFile.name }}</p>
+            <p class="text-xs mt-1 text-gray-600 dark:text-gray-500">
+              {{ humanFileSize(curFile.size) }}
+            </p>
           </div>
           <FilesTree
             v-else
@@ -337,7 +368,7 @@ onUnmounted(() => {
               Math.round(curFile.size === 0 ? 0 : (curFile.transmittedBytes / curFile.size) * 100)
             "
           />
-          <p class="text-right">
+          <p class="text-right text-sm">
             <span>{{ humanFileSize(curFile.speed) }}/s</span
             ><span class="ml-4">{{ humanFileSize(curFile.transmittedBytes) }}</span
             ><span class="mx-1">/</span><span>{{ humanFileSize(curFile.size) }}</span>
@@ -349,14 +380,14 @@ onUnmounted(() => {
               Math.round(totalFileSize === 0 ? 0 : (totalTransmittedBytes / totalFileSize) * 100)
             "
           />
-          <p class="text-right">
+          <p class="text-right text-sm">
             <span>{{ humanFileSize(totalSpeed) }}/s</span
             ><span class="ml-4">{{ humanFileSize(totalTransmittedBytes) }}</span
             ><span class="mx-1">/</span><span>{{ humanFileSize(totalFileSize) }}</span>
           </p>
         </div>
 
-        <div class="my-16">
+        <div v-if="status.warn.code === 0" class="my-16">
           <Button
             v-if="!status.isLock"
             rounded
@@ -388,6 +419,13 @@ onUnmounted(() => {
               >回首页</Button
             ></NuxtLink
           >
+        </div>
+
+        <div v-else class="mt-16">
+          <div v-if="status.warn.code === -1">不支持目录传输</div>
+          <div v-else-if="status.warn.code === -2">连接断开，传输失败</div>
+
+          {{ status.warn }}
         </div>
 
         <!-- <p>{{ totalFileSize }}</p>

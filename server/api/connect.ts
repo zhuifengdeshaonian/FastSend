@@ -12,13 +12,22 @@ const initPool = new TTLCache<string, any>({
   }
 })
 
-// 已初始化连接池
-// key为：
-// 1、发起方：连接ID
-// 2、接收方：R + 连接ID
-const initedPool = new TTLCache<string, any>({
+// 待连接连接池
+// key为：连接ID
+const waitConnectPool = new TTLCache<string, any>({
   max: 20000,
   ttl: 600e3,
+  dispose: (peer) => {
+    if (!peer.pairPeer) {
+      peer.ctx.node.ws.close()
+    }
+  }
+})
+
+// 已配对连接池
+const initedPool = new TTLCache<string, any>({
+  max: 20000,
+  ttl: 30 * 60e3,
   dispose: (peer) => {
     peer.ctx.node.ws.close()
   }
@@ -26,6 +35,7 @@ const initedPool = new TTLCache<string, any>({
 
 function disposePeer(peer: any) {
   initPool.delete(peer.id)
+  initedPool.delete(peer.id)
   peer.ctx.node.ws.close()
   if (peer.pairPeer && peer.pairPeer.readyState === 1) {
     disposePeer(peer.pairPeer)
@@ -39,12 +49,13 @@ function initSend(peer: any) {
   }
   let code = genDigitCode(4)
   let retryCount = 2048
-  while (initedPool.has(code)) {
+  while (waitConnectPool.has(code)) {
     if (retryCount-- <= 0) {
+      peer.send(JSON.stringify({ type: 'err', data: -1, msg: 'Init code fail' }))
       throw new Error('Init code fail')
     }
   }
-  initedPool.set(code, peer)
+  waitConnectPool.set(code, peer)
   peer.isInited = true
   initPool.delete(peer.id)
   // 初始化发送端成功，返回连接码
@@ -57,7 +68,7 @@ function initRecive(peer: any, code: string) {
     // throw new Error('Already paired')
     return
   }
-  const targetPeer = initedPool.get(code)
+  const targetPeer = waitConnectPool.get(code)
   if (!targetPeer || targetPeer.pairPeer) {
     peer.send(JSON.stringify({ type: 'status', code: '404' }))
     disposePeer(peer)
@@ -65,9 +76,13 @@ function initRecive(peer: any, code: string) {
   }
   targetPeer.pairPeer = peer
   peer.pairPeer = targetPeer
+
+  waitConnectPool.delete(code)
+
   peer.isInited = true
-  initedPool.set('R' + code, peer)
+  initedPool.set(peer.id, peer)
   initPool.delete(peer.id)
+  initedPool.set(targetPeer.id, targetPeer)
   // 配对成功
   peer.send(JSON.stringify({ type: 'status', code: '0' }))
 }
