@@ -70,7 +70,7 @@ function initRecive(peer: any, code: string) {
   }
   const targetPeer = waitConnectPool.get(code)
   if (!targetPeer || targetPeer.pairPeer) {
-    peer.send(JSON.stringify({ type: 'status', code: '404' }))
+    peer.send(JSON.stringify({ type: 'status', code: 404 }))
     disposePeer(peer)
     return
   }
@@ -84,7 +84,7 @@ function initRecive(peer: any, code: string) {
   initPool.delete(peer.id)
   initedPool.set(targetPeer.id, targetPeer)
   // 配对成功
-  peer.send(JSON.stringify({ type: 'status', code: '0' }))
+  peer.send(JSON.stringify({ type: 'status', code: 0 }))
 }
 
 export default defineWebSocketHandler({

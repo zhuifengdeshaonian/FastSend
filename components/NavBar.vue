@@ -128,7 +128,20 @@ onMounted(() => {
     </OverlayPanel>
 
     <div class="contents">
-      <Button severity="secondary" text @click="switchI18n" size="small" class="py-3 ml-2 md:ml-4">
+      <NuxtLink to="https://www.buymeacoffee.com/shouchen" target="_blank" class="ml-2 md:ml-4">
+        <Button severity="warning" text size="small" class="py-3" aria-label="Buy Me A Coffee">
+          <IconCoffee class="size-5 text-black dark:text-white/90" />
+        </Button>
+      </NuxtLink>
+
+      <Button
+        severity="secondary"
+        text
+        @click="switchI18n"
+        size="small"
+        class="py-3"
+        aria-label="Language"
+      >
         <Icon
           name="icon-park-outline:chinese"
           class="text-black/90 dark:text-white/90"
@@ -141,7 +154,14 @@ onMounted(() => {
         />
       </Button>
 
-      <Button severity="secondary" text @click="switchColorMode" size="small" class="py-3">
+      <Button
+        severity="secondary"
+        text
+        @click="switchColorMode"
+        size="small"
+        class="py-3"
+        aria-label="Dark"
+      >
         <Icon
           name="solar:moon-linear"
           class="text-yellow-500/90"

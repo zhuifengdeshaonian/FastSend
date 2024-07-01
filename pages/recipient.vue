@@ -271,11 +271,11 @@ onMounted(() => {
   ws.onmessage = (e) => {
     const data = JSON.parse(e.data)
     if (data.type === 'status') {
-      if (data.code === '404') {
+      if (data.code === 404) {
         status.value.error.code = 404
         status.value.error.msg = '404'
         dispose()
-      } else if (data.code === '0') {
+      } else if (data.code === 0) {
         initPDC()
       }
     } else if (data.type === 'sdp') {

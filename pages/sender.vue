@@ -139,7 +139,13 @@ onMounted(() => {
   }
   ws.onclose = () => {
     status.value.isConnectServer = false
-    if (status.value.isWaitingConnect) {
+    if (status.value.isIniting) {
+      // 连接信令服务器失败
+      status.value.error.code = -5
+      status.value.error.msg = 'Connect sign server error'
+      toast.add({ severity: 'error', summary: 'Error', detail: 'Connect sign server error' })
+    } else if (status.value.isWaitingConnect) {
+      // 等待接收端连接超时
       status.value.error.code = -10
       status.value.error.msg = 'Timeout'
       toast.add({ severity: 'error', summary: 'Error', detail: 'Waiting for timeout' })
