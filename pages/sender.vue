@@ -14,6 +14,7 @@ const status = ref({
   isConnectServer: false,
   isConnectPeer: false,
   isWaitingConnect: true,
+  isWaitingConfirm: true,
   error: {
     code: 0,
     msg: ''
@@ -32,12 +33,17 @@ function dispose() {
   pdc?.dispose()
 }
 
+async function confirmUser() {
+  status.value.isWaitingConfirm = false
+  await pdc?.sendData(JSON.stringify({ type: 'user', data: userInfo.value }))
+  await pdc?.sendData(JSON.stringify({ type: 'files', data: filesInfo.value }))
+}
+
 async function handleObjData(obj: any) {
   console.log(obj)
   if (obj.type === 'user') {
     peerUserInfo.value = obj.data
-    await pdc?.sendData(JSON.stringify({ type: 'user', data: userInfo.value }))
-    await pdc?.sendData(JSON.stringify({ type: 'files', data: filesInfo.value }))
+    status.value.isWaitingConnect = false
   } else if (obj.type === 'reqFile') {
     const file = filesInfo.value.fileMap[obj.data]?.file
     // console.log(file)
@@ -53,7 +59,7 @@ async function handleObjData(obj: any) {
       const ab = await file.slice(i * sliceSize, (i + 1) * sliceSize).arrayBuffer()
 
       if (ab.byteLength > 0) {
-        // todo
+        // todo 计算哈希
         await pdc?.sendData(ab)
       }
     }
@@ -82,7 +88,7 @@ function initPDC() {
   pdc.onConnected = () => {
     console.log('onConnected')
     status.value.isConnectPeer = true
-    status.value.isWaitingConnect = false
+    status.value.isWaitingConfirm = true
   }
   pdc.onRecive = (data, info) => {
     // console.log('data', data)
@@ -115,7 +121,15 @@ onMounted(() => {
     return
   }
 
-  ws = new WebSocket('/api/connect')
+  try {
+    ws = new WebSocket('/api/connect')
+  } catch (e) {
+    console.error(e)
+    // 连接信令服务器失败
+    status.value.error.code = -5
+    status.value.error.msg = e + ''
+    return
+  }
   ws.onopen = () => {
     status.value.isConnectServer = true
     ws?.send(JSON.stringify({ type: 'send' }))
@@ -131,6 +145,7 @@ onMounted(() => {
     } else if (data.type === 'candidate') {
       pdc?.addICECandidate(data.data)
     } else if (data.type === 'err') {
+      // -1 初始化连接码失败，稍后再试
       status.value.error.code = data.data
       status.value.isWaitingConnect = false
       toast.add({ severity: 'error', summary: 'Error', detail: data.msg })
@@ -166,10 +181,26 @@ onUnmounted(() => {
   <div>
     <!-- 错误页面 -->
     <div v-if="status.error.code !== 0">
-      {{ status.error }}
+      <div v-if="status.error.code === -1" class="text-center">
+        <Icon name="material-symbols-light:account-circle-off-outline-rounded" size="100" />
+        <p class="text-xl tracking-wider py-8">当前连接人数太多，请稍后再试</p>
+      </div>
+
+      <div v-else class="text-center">
+        <Icon name="solar:sad-square-line-duotone" size="100" />
+        <p class="text-xl tracking-wider py-8">服务异常，请稍后再试</p>
+      </div>
+
+      <div class="text-center py-4">
+        <NuxtLink :to="localePath('/')">
+          <Button severity="contrast" class="tracking-wider"
+            ><Icon name="solar:home-2-linear" class="mr-2" />回首页</Button
+          ></NuxtLink
+        >
+      </div>
     </div>
 
-    <!-- loading -->
+    <!-- 加载页面 -->
     <div v-else-if="status.isIniting" class="flex flex-col gap-4 items-center justify-center py-20">
       <div class="loader"></div>
       <p class="text-xs">连接中</p>
@@ -193,12 +224,32 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- 发送端主界面 v-else -->
-    <div class="p-4 md:mx-[10vw]">
-      <div class="flex flex-col items-center gap-1">
-        <Avatar shape="circle" size="xlarge" :image="peerUserInfo.avatarURL" />
-        <p>{{ peerUserInfo.nickname }}</p>
+    <div v-else>
+      <div class="flex flex-col items-center">
+        <div class="py-4 px-8 rounded-lg shadow">
+          <Avatar shape="circle" size="xlarge" :image="peerUserInfo.avatarURL" />
+          <p class="text-center mt-2">{{ peerUserInfo.nickname }}</p>
+        </div>
       </div>
+
+      <!-- 传输确认 v-else-if="status.isWaitingConfirm" -->
+      <div class="p-4 md:mx-[10vw]">
+        <p class="text-center text-2xl tracking-wider">确定继续传输吗</p>
+        <div class="flex flex-row items-center justify-center gap-6 mt-8">
+          <NuxtLink :to="localePath('/')">
+            <Button outlined severity="danger" class="tracking-wider"
+              ><Icon name="solar:close-square-linear" class="mr-2" />取消</Button
+            >
+          </NuxtLink>
+
+          <Button severity="contrast" @click="confirmUser" class="tracking-wider"
+            ><Icon name="solar:check-square-linear" class="mr-2" />确定</Button
+          >
+        </div>
+      </div>
+
+      <!-- 发送端主界面 v-else -->
+      <div class="p-4 md:mx-[10vw]"></div>
     </div>
     sender
     <p>{{ status }}</p>
