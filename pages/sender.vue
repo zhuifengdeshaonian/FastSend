@@ -15,6 +15,7 @@ const status = ref({
   isConnectPeer: false,
   isWaitingConnect: true,
   isWaitingConfirm: true,
+  isDone: false,
   error: {
     code: 0,
     msg: ''
@@ -33,7 +34,13 @@ function dispose() {
   pdc?.dispose()
 }
 
-async function confirmUser() {
+async function confirmUser(isTrust: boolean) {
+  if (!isTrust) {
+    // 用户拒绝传输
+    await pdc?.sendData(JSON.stringify({ type: 'err', data: 403 }))
+    router.replace(localePath('/'))
+    return
+  }
   status.value.isWaitingConfirm = false
   await pdc?.sendData(JSON.stringify({ type: 'user', data: userInfo.value }))
   await pdc?.sendData(JSON.stringify({ type: 'files', data: filesInfo.value }))
@@ -49,7 +56,9 @@ async function handleObjData(obj: any) {
     // console.log(file)
 
     if (!file) {
-      await pdc?.sendData(JSON.stringify({ type: 'err', data: 'File not found' }))
+      // 找不到对应的文件
+      await pdc?.sendData(JSON.stringify({ type: 'err', data: 404 }))
+      return
     }
     // 计算分片数量
     const sliceSize = 1024 * 1024
@@ -63,8 +72,9 @@ async function handleObjData(obj: any) {
         await pdc?.sendData(ab)
       }
     }
-  } else if (obj.type === 'warn') {
+  } else if (obj.type === 'err') {
     if (obj.data) {
+      // -1，不支持现代文件访问API，不能传输目录
       status.value.warn.code = obj.data
     }
   }
@@ -224,32 +234,70 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- 连接成功 -->
     <div v-else>
-      <div class="flex flex-col items-center">
-        <div class="py-4 px-8 rounded-lg shadow">
-          <Avatar shape="circle" size="xlarge" :image="peerUserInfo.avatarURL" />
+      <!-- 接入的用户 -->
+      <div class="flex flex-col items-center mt-4">
+        <div class="flex-col items-center py-4 px-8 rounded-lg shadow flex">
+          <Avatar shape="circle" size="xlarge" :image="peerUserInfo.avatarURL" class="shadow" />
           <p class="text-center mt-2">{{ peerUserInfo.nickname }}</p>
         </div>
       </div>
 
-      <!-- 传输确认 v-else-if="status.isWaitingConfirm" -->
-      <div class="p-4 md:mx-[10vw]">
+      <!-- 业务异常 -->
+      <div
+        v-if="status.warn.code !== 0"
+        class="flex flex-col items-center justify-center py-10 gap-4"
+      >
+        <Icon
+          name="material-symbols-light:warning-outline-rounded"
+          size="96"
+          class="text-amber-500 dark:text-amber-600"
+        />
+        <p v-if="status.warn.code === -1">对方不支持现代文件访问API</p>
+
+        <div class="text-center py-4">
+          <NuxtLink :to="localePath('/')">
+            <Button severity="contrast" class="tracking-wider"
+              ><Icon name="solar:home-2-linear" class="mr-2" />回首页</Button
+            ></NuxtLink
+          >
+        </div>
+      </div>
+
+      <!-- 传输确认 -->
+      <div v-else-if="status.isWaitingConfirm" class="p-4 md:mx-[10vw]">
         <p class="text-center text-2xl tracking-wider">确定继续传输吗</p>
         <div class="flex flex-row items-center justify-center gap-6 mt-8">
-          <NuxtLink :to="localePath('/')">
-            <Button outlined severity="danger" class="tracking-wider"
-              ><Icon name="solar:close-square-linear" class="mr-2" />取消</Button
-            >
-          </NuxtLink>
+          <Button outlined severity="danger" @click="confirmUser(false)" class="tracking-wider"
+            ><Icon name="solar:close-square-linear" class="mr-2" />取消</Button
+          >
 
-          <Button severity="contrast" @click="confirmUser" class="tracking-wider"
+          <Button severity="contrast" @click="confirmUser(true)" class="tracking-wider"
             ><Icon name="solar:check-square-linear" class="mr-2" />确定</Button
           >
         </div>
       </div>
 
-      <!-- 发送端主界面 v-else -->
-      <div class="p-4 md:mx-[10vw]"></div>
+      <!-- 发送端主界面 -->
+      <div v-else-if="!status.isDone" class="p-4 md:mx-[10vw]">发送中</div>
+
+      <!-- 发送完毕 -->
+      <div v-else class="flex flex-col items-center justify-center py-10 gap-4">
+        <Icon
+          name="material-symbols-light:warning-outline-rounded"
+          size="96"
+          class="text-amber-500 dark:text-amber-600"
+        />
+        <p>发送完毕</p>
+        <div class="text-center py-4">
+          <NuxtLink :to="localePath('/')">
+            <Button severity="contrast" class="tracking-wider"
+              ><Icon name="solar:home-2-linear" class="mr-2" />回首页</Button
+            ></NuxtLink
+          >
+        </div>
+      </div>
     </div>
     sender
     <p>{{ status }}</p>

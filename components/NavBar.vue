@@ -99,7 +99,7 @@ onMounted(() => {
         class="shadow cursor-pointer"
         @click="showNicknameEditor"
       />
-      <p class="ml-2 truncate shrink-[1000]">
+      <p class="ml-2 truncate shrink-[1000] hidden md:block">
         {{ userInfo.nickname }}
       </p>
     </div>

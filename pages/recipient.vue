@@ -30,6 +30,7 @@ const status = ref({
   isConnectPeer: false,
   isPeerConnecting: false,
   isIniting: true,
+  isWaitingPeerConfirm: true,
   isLock: false,
   isReceiving: false,
   isDone: false,
@@ -136,13 +137,22 @@ async function handleObjData(obj: any) {
       status.value.warn.code = -1
       status.value.warn.msg = '不支持目录传输'
       // 告知对方情况
-      await pdc?.sendData(JSON.stringify({ type: 'warn', data: -1 }))
+      await pdc?.sendData(JSON.stringify({ type: 'err', data: -1 }))
       dispose()
     }
-    status.value.isIniting = false
+    status.value.isWaitingPeerConfirm = false
   } else if (obj.type === 'err') {
     console.warn(obj.data)
-    toast.add({ severity: 'warn', summary: 'Warn', detail: obj.data, life: 3e3 })
+    if (obj.data === 403) {
+      // 用户拒绝传输
+      status.value.error.code = 403
+      status.value.error.msg = '用户拒绝传输'
+      toast.add({ severity: 'error', summary: 'Error', detail: '用户拒绝传输', life: 5e3 })
+    } else if (obj.data === 404) {
+      // 找不到对应的文件
+      toast.add({ severity: 'warn', summary: 'Warn', detail: '文件找不到', life: 3e3 })
+    }
+    // toast.add({ severity: 'warn', summary: 'Warn', detail: obj.data, life: 3e3 })
   }
 }
 
@@ -178,6 +188,7 @@ function initPDC() {
   pdc.onConnected = () => {
     status.value.isConnectPeer = true
     status.value.isPeerConnecting = false
+    status.value.isIniting = false
   }
   pdc.onOpen = () => pdc?.sendData(JSON.stringify({ type: 'user', data: userInfo.value }))
   pdc.onRecive = (data) => {
@@ -300,22 +311,50 @@ onUnmounted(() => {
 
 <template>
   <div>
-    <!-- error -->
+    <!-- 错误界面 -->
     <div v-if="status.error.code !== 0">
+      <!-- 取件码无效 -->
       <div v-if="status.error.code === 404">404</div>
+      <!-- 用户拒绝传输 -->
+      <div
+        v-if="status.error.code === 403"
+        class="py-16 flex flex-col justify-center items-center gap-4"
+      >
+        <Icon name="solar:close-square-linear" size="64" class="text-rose-500 dark:text-rose-600" />
+        <p class="text-xl tracking-wider">用户拒绝传输</p>
+      </div>
+      <!-- 其他错误 -->
       <div v-else>{{ status.error }}</div>
+
+      <div class="text-center py-4">
+        <NuxtLink :to="localePath('/')">
+          <Button severity="contrast" class="tracking-wider"
+            ><Icon name="solar:home-2-linear" class="mr-2" />回首页</Button
+          ></NuxtLink
+        >
+      </div>
     </div>
 
-    <!-- loading -->
+    <!-- 加载页面 -->
     <div v-else-if="status.isIniting" class="flex flex-col gap-4 items-center justify-center py-20">
       <div class="loader"></div>
       <p class="text-xs">连接中</p>
     </div>
 
+    <!-- 等待对方确认 -->
+    <div
+      v-else-if="status.isWaitingPeerConfirm"
+      class="flex flex-col gap-4 items-center justify-center py-20"
+    >
+      <div class="loader"></div>
+      <p class="text-xs">等待对方确认</p>
+    </div>
+
+    <!-- 连接成功页面 -->
     <div v-else class="md:grid md:grid-cols-2 md:gap-8 px-4 md:px-[10vw]">
-      <!-- left top panel -->
+      <!-- 用户和文件展示 -->
       <div>
-        <!-- peer user -->
+        <!-- 发送方用户 -->
         <div
           class="p-2 pr-3 md:p-3 md:pr-5 shadow shadow-black/20 dark:bg-neutral-900 rounded-full flex flex-row items-center"
         >
@@ -341,8 +380,9 @@ onUnmounted(() => {
           />
         </div>
 
-        <!-- file list -->
+        <!-- 文件列表 -->
         <div class="mt-4 md:mt-6">
+          <!-- 单个文件 -->
           <div v-if="peerFilesInfo.type === 'transFile'" class="flex flex-col items-center mt-8">
             <Icon name="material-symbols-light:unknown-document-outline-rounded" size="64" />
             <p class="text-lg">{{ curFile.name }}</p>
@@ -350,6 +390,7 @@ onUnmounted(() => {
               {{ humanFileSize(curFile.size) }}
             </p>
           </div>
+          <!-- 目录 -->
           <FilesTree
             v-else
             :file-map="peerFilesInfo.fileMap"
@@ -359,8 +400,9 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- right bottom panel -->
+      <!-- 进度和操作按钮 -->
       <div class="mt-6 md:mt-0">
+        <!-- 进度 -->
         <div>
           <p class="text-sm mt-2">{{ curFile.name }}</p>
           <ProgressBar
@@ -387,7 +429,9 @@ onUnmounted(() => {
           </p>
         </div>
 
+        <!-- 操作按钮 -->
         <div v-if="status.warn.code === 0" class="my-16">
+          <!-- 接收和终止 -->
           <Button
             v-if="!status.isLock"
             rounded
@@ -398,31 +442,47 @@ onUnmounted(() => {
             ><Icon name="solar:archive-down-minimlistic-line-duotone" class="mr-2" />接收</Button
           >
           <Button
-            v-else-if="status.isReceiving"
+            v-if="status.isReceiving"
             rounded
             outlined
             severity="danger"
             class="w-full tracking-wider"
             >终止</Button
           >
+
+          <!-- 传输完成 -->
           <Button
             v-if="status.isDone && !isModernFileAPISupport"
             rounded
             outlined
             severity="contrast"
-            class="w-full tracking-wider mb-4"
+            class="w-full tracking-wider"
             @click="downloadFile"
-            >下载</Button
+            ><Icon name="solar:download-minimalistic-linear" class="mr-2" />下载</Button
           >
-          <NuxtLink :to="localePath('/')"
-            ><Button v-if="status.isDone" rounded severity="contrast" class="w-full tracking-wider"
-              >回首页</Button
-            ></NuxtLink
-          >
+
+          <div v-if="status.isDone" class="py-6">
+            <NuxtLink to="https://www.buymeacoffee.com/shouchen" target="_blank">
+              <Button rounded outlined severity="contrast" class="w-full tracking-wider"
+                ><IconCoffee class="size-[1.125rem] mr-2" />请我喝咖啡</Button
+              >
+            </NuxtLink>
+
+            <NuxtLink :to="localePath('/')">
+              <Button rounded severity="contrast" class="w-full tracking-wider block mt-6"
+                ><Icon name="solar:home-2-linear" class="mr-2" />回首页</Button
+              ></NuxtLink
+            >
+          </div>
         </div>
 
+        <!-- 业务异常 -->
         <div v-else class="mt-16">
-          <div v-if="status.warn.code === -1">不支持目录传输</div>
+          <!-- 不支持目录传输 -->
+          <div v-if="status.warn.code === -1">
+            <p>不支持目录传输</p>
+          </div>
+          <!-- 连接异常中断 -->
           <div v-else-if="status.warn.code === -2">连接断开，传输失败</div>
 
           {{ status.warn }}
