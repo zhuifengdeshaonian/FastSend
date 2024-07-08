@@ -27,11 +27,14 @@ export default defineI18nConfig(() => ({
         clear: 'Clear',
         download: 'Download',
         copy: 'Copy',
-        copied: 'Copied'
+        copied: 'Copied',
+        sendFile: 'Send file',
+        sendDir: 'Send folder',
+        syncDir: 'Folder synchronization'
       },
       hint: {
         noModernFileAPIWarn:
-          'Warning: Your browser does not support modern file access APIs, making the `Directory Sync` and `Send Directory` features unavailable. Additionally, the file receiving limit is 1GB.'
+          'Warning: Your browser does not support modern file access APIs, making the `Folder synchronization` and `Send folder` features unavailable. Additionally, the file receiving limit is 1GB.'
       }
     },
     zh: {
@@ -59,7 +62,10 @@ export default defineI18nConfig(() => ({
         clear: '清空',
         download: '下载',
         copy: '复制',
-        copied: '已复制'
+        copied: '已复制',
+        sendFile: '发送文件',
+        sendDir: '发送目录',
+        syncDir: '目录同步'
       },
       hint: {
         noModernFileAPIWarn:

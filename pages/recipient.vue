@@ -167,7 +167,9 @@ function initPDC() {
     console.log('onDispose')
 
     status.value.isConnectPeer = false
-    if (status.value.isReceiving) {
+    if (status.value.isWaitingPeerConfirm) {
+      status.value.error.code = 403
+    } else if (status.value.isReceiving) {
       status.value.warn.code = -2
       status.value.warn.msg = '连接断开，传输失败'
     }
@@ -249,14 +251,18 @@ async function doRecive() {
         curFileWriter = await saveFileFH?.createWritable()
       }
       await requestFile(curFile.value.name)
-      status.value.isReceiving = false
-      status.value.isDone = true
-      calcSpeedFn()
-      dispose()
     } else {
       rootDirDH = await showDirectoryPicker()
       // todo
     }
+
+    // 传输完成，告知对方
+    await pdc?.sendData(JSON.stringify({ type: 'done' }))
+    status.value.isReceiving = false
+    status.value.isDone = true
+    calcSpeedFn()
+    dispose()
+    toast.add({ severity: 'success', summary: 'Success', detail: '传输完成' })
   } catch (e) {
     console.warn(e)
     toast.add({ severity: 'error', summary: 'Error', detail: e })
@@ -338,7 +344,7 @@ onUnmounted(() => {
     <!-- 加载页面 -->
     <div v-else-if="status.isIniting" class="flex flex-col gap-4 items-center justify-center py-20">
       <div class="loader"></div>
-      <p class="text-xs">连接中</p>
+      <p class="text-xs tracking-wide">连接中</p>
     </div>
 
     <!-- 等待对方确认 -->
@@ -347,7 +353,7 @@ onUnmounted(() => {
       class="flex flex-col gap-4 items-center justify-center py-20"
     >
       <div class="loader"></div>
-      <p class="text-xs">等待对方确认</p>
+      <p class="text-xs tracking-wide">等待对方确认</p>
     </div>
 
     <!-- 连接成功页面 -->
@@ -477,15 +483,28 @@ onUnmounted(() => {
         </div>
 
         <!-- 业务异常 -->
-        <div v-else class="mt-16">
+        <div v-else class="mb-16 flex flex-col items-center justify-center py-10 gap-4">
+          <Icon
+            name="material-symbols-light:warning-outline-rounded"
+            size="96"
+            class="text-amber-500 dark:text-amber-600"
+          />
           <!-- 不支持目录传输 -->
           <div v-if="status.warn.code === -1">
-            <p>不支持目录传输</p>
+            <p class="text-xl tracking-wider">不支持目录传输</p>
           </div>
           <!-- 连接异常中断 -->
-          <div v-else-if="status.warn.code === -2">连接断开，传输失败</div>
+          <div v-else-if="status.warn.code === -2">
+            <p class="text-xl tracking-wider">连接断开，传输失败</p>
+          </div>
 
-          {{ status.warn }}
+          <div class="text-center py-4">
+            <NuxtLink :to="localePath('/')">
+              <Button severity="contrast" class="tracking-wider"
+                ><Icon name="solar:home-2-linear" class="mr-2" />回首页</Button
+              ></NuxtLink
+            >
+          </div>
         </div>
 
         <!-- <p>{{ totalFileSize }}</p>

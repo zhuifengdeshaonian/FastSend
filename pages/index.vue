@@ -123,7 +123,7 @@ onMounted(() => {
       <span class="text-red-500">*</span>{{ $t('hint.noModernFileAPIWarn') }}
     </p>
 
-    <div class="md:grid md:grid-cols-2 md:gap-4 mt-10 px-4">
+    <div class="md:grid md:grid-cols-2 gap-4 my-10 px-4">
       <div class="flex flex-col items-center space-y-6">
         <h2 class="text-2xl tracking-wider flex flex-row items-center gap-2">
           <Icon name="solar:card-send-linear" />{{ $t('label.quickStart') }}
@@ -135,7 +135,7 @@ onMounted(() => {
           class="block w-full tracking-wider"
           severity="contrast"
           @click="sendFile"
-          ><Icon name="solar:file-line-duotone" class="mr-2" />发送文件</Button
+          ><Icon name="solar:file-line-duotone" class="mr-2" />{{ $t('btn.sendFile') }}</Button
         >
         <Button
           outlined
@@ -144,7 +144,9 @@ onMounted(() => {
           severity="contrast"
           :disabled="!isModernFileAPISupport"
           @click="sendDir"
-          ><Icon name="solar:folder-with-files-line-duotone" class="mr-2" />发送目录</Button
+          ><Icon name="solar:folder-with-files-line-duotone" class="mr-2" />{{
+            $t('btn.sendDir')
+          }}</Button
         >
         <Button
           rounded
@@ -152,7 +154,7 @@ onMounted(() => {
           severity="contrast"
           :disabled="!isModernFileAPISupport"
           @click="syncDir"
-          ><Icon name="solar:refresh-square-broken" class="mr-2" />目录同步</Button
+          ><Icon name="solar:refresh-square-broken" class="mr-2" />{{ $t('btn.syncDir') }}</Button
         >
       </div>
 
