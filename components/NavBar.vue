@@ -87,7 +87,9 @@ onMounted(() => {
     :class="{ 'backdrop-blur': isBgBlur }"
   >
     <NuxtLink :to="localePath('/')">
-      <div class="tracking-wider">FastSend</div>
+      <div class="tracking-wider">
+        <img src="/favicon.webp" class="inline-block size-[32px] mr-1" />FastSend
+      </div>
     </NuxtLink>
 
     <div class="flex-1"></div>

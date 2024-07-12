@@ -102,7 +102,7 @@ async function handleObjData(obj: any) {
     // 传输完成
     status.value.isDone = true
     dispose()
-    toast.add({ severity: 'success', summary: 'Success', detail: '传输完成' })
+    toast.add({ severity: 'success', summary: 'Success', detail: '传输完成', life: 5e3 })
   } else if (obj.type === 'err') {
     // 错误
     if (obj.data) {

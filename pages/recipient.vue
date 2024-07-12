@@ -262,7 +262,7 @@ async function doRecive() {
     status.value.isDone = true
     calcSpeedFn()
     dispose()
-    toast.add({ severity: 'success', summary: 'Success', detail: '传输完成' })
+    toast.add({ severity: 'success', summary: 'Success', detail: '传输完成', life: 5e3 })
   } catch (e) {
     console.warn(e)
     toast.add({ severity: 'error', summary: 'Error', detail: e })
@@ -318,21 +318,33 @@ onUnmounted(() => {
 <template>
   <div>
     <!-- 错误界面 -->
-    <div v-if="status.error.code !== 0">
+    <div v-if="status.error.code !== 0" class="py-16">
       <!-- 取件码无效 -->
-      <div v-if="status.error.code === 404">404</div>
+      <div v-if="status.error.code === 404" class="text-center">
+        <Icon
+          name="solar:folder-error-linear"
+          size="100"
+          class="text-rose-500 dark:text-rose-600"
+        />
+        <p class="text-xl tracking-wider py-8">取件码无效</p>
+      </div>
       <!-- 用户拒绝传输 -->
-      <div
-        v-if="status.error.code === 403"
-        class="py-16 flex flex-col justify-center items-center gap-4"
-      >
-        <Icon name="solar:close-square-linear" size="64" class="text-rose-500 dark:text-rose-600" />
-        <p class="text-xl tracking-wider">用户拒绝传输</p>
+      <div v-else-if="status.error.code === 403" class="text-center">
+        <Icon
+          name="solar:close-square-linear"
+          size="100"
+          class="text-rose-500 dark:text-rose-600"
+        />
+        <p class="text-xl tracking-wider py-8">用户拒绝传输</p>
       </div>
       <!-- 其他错误 -->
-      <div v-else>{{ status.error }}</div>
+      <div v-else class="text-center">
+        <Icon name="solar:sad-square-line-duotone" size="100" />
+        <p class="text-xl tracking-wider py-8">服务异常，请稍后再试</p>
+        {{ status.error }}
+      </div>
 
-      <div class="text-center py-4">
+      <div class="text-center my-4">
         <NuxtLink :to="localePath('/')">
           <Button severity="contrast" class="tracking-wider"
             ><Icon name="solar:home-2-linear" class="mr-2" />回首页</Button
