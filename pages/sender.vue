@@ -136,12 +136,12 @@ function initPDC() {
     status.value.isConnectPeer = true
     status.value.isWaitingConfirm = true
   }
-  pdc.onRecive = (data, info) => {
+  pdc.onRecive = async (data, info) => {
     // console.log('data', data)
     // console.log(info.size, info.duration, info.size / (info.duration / 1e3))
 
     if (typeof data === 'string') {
-      handleObjData(JSON.parse(data))
+      await handleObjData(JSON.parse(data))
     }
   }
 }

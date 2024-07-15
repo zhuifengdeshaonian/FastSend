@@ -47,9 +47,9 @@ const status = ref({
 let calcSpeedJobId: any
 let ws: WebSocket | null
 let pdc: PeerDataChannel | null
-let saveFileFH: FileSystemFileHandle | null
+let saveFileFH: FileSystemFileHandle | undefined
 let curFileWriter: FileSystemWritableFileStream | undefined
-let rootDirDH: FileSystemDirectoryHandle | null
+let rootDirDH: FileSystemDirectoryHandle | undefined
 let reqFileResolveFn: () => void | undefined
 let reqFileRejecteFn: () => void | undefined
 
@@ -57,12 +57,12 @@ let reqFileRejecteFn: () => void | undefined
 function dispose() {
   console.log('dispose')
 
+  clearInterval(calcSpeedJobId)
   if (reqFileRejecteFn) {
     reqFileRejecteFn()
   }
   ws?.close()
   pdc?.dispose()
-  clearInterval(calcSpeedJobId)
 }
 
 // 计算传输速度
@@ -79,15 +79,15 @@ function downloadFile() {
 }
 
 // 处理文件数据块
-function handleBufferData(buf: ArrayBuffer) {
+async function handleBufferData(buf: ArrayBuffer) {
   curFile.value.transmittedBytes += buf.byteLength
   totalTransmittedBytes.value += buf.byteLength
   if (isModernFileAPISupport.value) {
     // 支持现代文件访问API，直接写到文件
-    curFileWriter?.write(buf)
+    await curFileWriter?.write(buf)
     if (curFile.value.transmittedBytes === curFile.value.size) {
       // 该文件传输完毕
-      curFileWriter?.close()
+      await curFileWriter?.close()
       if (reqFileResolveFn) {
         reqFileResolveFn()
       }
@@ -106,6 +106,32 @@ function handleBufferData(buf: ArrayBuffer) {
   }
 }
 
+function initCurFile(key?: string) {
+  const fm = peerFilesInfo.value.fileMap
+  let fileName
+  if (key) {
+    fileName = key
+    if (!fm[key]) {
+      throw new Error('File not found')
+    }
+  } else {
+    const fileNames = Object.keys(fm)
+    if (fileNames.length === 0) {
+      throw new Error('File not found')
+    }
+    fileName = fileNames[0]
+  }
+
+  curFile.value = {
+    name: fileName,
+    size: fm[fileName]?.size || 0,
+    transmittedBytes: 0,
+    lastSize: 0,
+    speed: 0,
+    chunks: []
+  }
+}
+
 // 处理JSON数据对象
 async function handleObjData(obj: any) {
   console.log(obj)
@@ -117,20 +143,7 @@ async function handleObjData(obj: any) {
     peerFilesInfo.value = obj.data
     if (peerFilesInfo.value.type === 'transFile') {
       // 传输单个文件
-      const fm = peerFilesInfo.value.fileMap
-      const fileNames = Object.keys(fm)
-      if (fileNames.length === 0) {
-        throw new Error('File not found')
-      }
-      const fileName = fileNames[0]
-      curFile.value = {
-        name: fileName,
-        size: fm[fileName]?.size || 0,
-        transmittedBytes: 0,
-        lastSize: 0,
-        speed: 0,
-        chunks: []
-      }
+      initCurFile()
       totalFileSize.value = curFile.value.size
     } else if (!isModernFileAPISupport.value) {
       // 传输目录，但是不支持现代文件访问API，直接报错
@@ -193,12 +206,12 @@ function initPDC() {
     status.value.isIniting = false
   }
   pdc.onOpen = () => pdc?.sendData(JSON.stringify({ type: 'user', data: userInfo.value }))
-  pdc.onRecive = (data) => {
+  pdc.onRecive = async (data) => {
     // console.log('data', data)
     if (typeof data === 'string') {
-      handleObjData(JSON.parse(data))
+      await handleObjData(JSON.parse(data))
     } else {
-      handleBufferData(data)
+      await handleBufferData(data)
     }
   }
 }
@@ -227,14 +240,15 @@ async function doRecive() {
       status.value.isReceiving = false
       return
     }
+    totalFileSize.value = 0
+    waitReciveFileList.value.forEach((name) => {
+      totalFileSize.value += peerFilesInfo.value.fileMap[name]?.size
+    })
   }
   status.value.isLock = true
 
   // 初始化参数
   reciveFileIndex.value = 0
-  waitReciveFileList.value.forEach((name) => {
-    totalFileSize.value += peerFilesInfo.value.fileMap[name]?.size
-  })
   totalTransmittedBytes.value = 0
   startTime.value = new Date().getTime()
   // 启动传输速度计算定时器
@@ -251,9 +265,27 @@ async function doRecive() {
         curFileWriter = await saveFileFH?.createWritable()
       }
       await requestFile(curFile.value.name)
-    } else {
+    } else if (peerFilesInfo.value.type === 'transDir') {
+      // 传输目录
       rootDirDH = await showDirectoryPicker()
-      // todo
+      // console.log(waitReciveFileList.value);
+      for (let i = 0; i < waitReciveFileList.value.length; i++) {
+        const key = waitReciveFileList.value[i]
+        const paths = key.split('/')
+        console.log(paths)
+
+        initCurFile(key)
+        let curFolder = rootDirDH
+        for (let j = 0; j < paths.length - 1; j++) {
+          console.log(curFolder)
+          curFolder = await curFolder?.getDirectoryHandle(paths[j], { create: true })
+        }
+        console.log(curFolder)
+
+        const curFH = await curFolder?.getFileHandle(paths[paths.length - 1], { create: true })
+        curFileWriter = await curFH?.createWritable()
+        await requestFile(key)
+      }
     }
 
     // 传输完成，告知对方
@@ -265,6 +297,7 @@ async function doRecive() {
     toast.add({ severity: 'success', summary: 'Success', detail: '传输完成', life: 5e3 })
   } catch (e) {
     console.warn(e)
+    clearInterval(calcSpeedJobId)
     toast.add({ severity: 'error', summary: 'Error', detail: e })
     status.value.isLock = status.value.isReceiving = false
   }
@@ -316,7 +349,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div>
+  <div class="pb-8">
     <!-- 错误界面 -->
     <div v-if="status.error.code !== 0" class="py-16">
       <!-- 取件码无效 -->
@@ -469,6 +502,11 @@ onUnmounted(() => {
           >
 
           <!-- 传输完成 -->
+          <div v-if="status.isDone" class="flex flex-col items-center justify-center py-4 gap-4">
+            <Icon name="solar:confetti-line-duotone" size="100" class="text-amber-500" />
+            <p class="text-xl tracking-wider">传输完成</p>
+          </div>
+
           <Button
             v-if="status.isDone && !isModernFileAPISupport"
             rounded

@@ -10,8 +10,11 @@ export class PeerDataChannel {
     chunks: (string | ArrayBuffer)[]
   } = { startTime: 0, offset: 0, count: 0, type: '', chunks: [] }
   private sendPromiseReject: (reason?: any) => void = () => {}
-  public onRecive: (data: ArrayBuffer | string, info: { size: number; duration: number }) => void =
-    () => {}
+  private eventQueue: EventQueue<any>
+  public onRecive: (
+    data: ArrayBuffer | string,
+    info: { size: number; duration: number }
+  ) => Promise<void> = () => new Promise<void>(() => {})
   public onSDP: (sdp: RTCSessionDescriptionInit) => void = () => {}
   public onICECandidate: (candidate: RTCIceCandidate) => void = () => {}
   public onError: (e: any) => void = () => {}
@@ -20,11 +23,12 @@ export class PeerDataChannel {
   public onOpen: () => void = () => {}
 
   constructor(iceServers?: RTCIceServer[], init?: boolean) {
+    this.eventQueue = new EventQueue((dat) => this.onData(dat))
     this.pc = new RTCPeerConnection({ iceServers: iceServers })
     this.pc.ondatachannel = (e) => {
       this.dc = e.channel
       this.dc.bufferedAmountLowThreshold = 0
-      this.dc.onmessage = (e) => this.onData(e.data)
+      this.dc.onmessage = (e) => this.eventQueue.enqueue(e.data)
       this.dc.onopen = () => this.onOpen()
     }
     this.pc.onnegotiationneeded = () => this.reNegotition()
@@ -41,7 +45,7 @@ export class PeerDataChannel {
     if (init) {
       this.dc = this.pc.createDataChannel('dc')
       this.dc.bufferedAmountLowThreshold = 0
-      this.dc.onmessage = (e) => this.onData(e.data)
+      this.dc.onmessage = (e) => this.eventQueue.enqueue(e.data)
       this.dc.onopen = () => this.onOpen()
     }
   }
@@ -64,12 +68,12 @@ export class PeerDataChannel {
         const endTime = new Date().getTime()
         const b = new Blob(reciveData.chunks)
         if (reciveData.type === 'string') {
-          this.onRecive(await b.text(), {
+          await this.onRecive(await b.text(), {
             size: b.size,
             duration: endTime - reciveData.startTime
           })
         } else {
-          this.onRecive(await b.arrayBuffer(), {
+          await this.onRecive(await b.arrayBuffer(), {
             size: b.size,
             duration: endTime - reciveData.startTime
           })
@@ -218,5 +222,35 @@ export class PeerDataChannel {
     this.pc.onicegatheringstatechange = null
     this.pc.onnegotiationneeded = null
     this.pc.close()
+  }
+}
+
+class EventQueue<T> {
+  private queue: any[T]
+  private processing: boolean
+  private handler: (e: T) => Promise<void>
+
+  constructor(handler: (e: T) => Promise<void>) {
+    this.queue = []
+    this.processing = false
+    this.handler = handler
+  }
+
+  public enqueue(e: T) {
+    this.queue.push(e)
+    if (!this.processing) {
+      this.processNext()
+    }
+  }
+
+  private async processNext() {
+    if (this.queue.length > 0) {
+      this.processing = true
+      const e = this.queue.shift()
+      await this.handler(e)
+      this.processNext()
+    } else {
+      this.processing = false
+    }
   }
 }

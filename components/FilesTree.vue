@@ -43,7 +43,7 @@ function calcTreeNodes() {
         curPath[name] = {
           key: key,
           label: name,
-          data: file.size + ''
+          data: file.size
         }
       } else {
         let folder = curPath[name]
@@ -51,7 +51,7 @@ function calcTreeNodes() {
           folder = curPath[name] = {
             key: name + '/',
             label: name + '/',
-            data: '',
+            data: -1,
             children: {}
           }
         }
@@ -91,7 +91,7 @@ const nodes = computed(calcTreeNodes)
       /></template>
       <template #default="item" class="flex flex-row">
         <span class="break-all">{{ item.node.label }}</span>
-        <span v-if="item.node.data" class="ml-1">{{ humanFileSize(item.node.data) }}</span>
+        <span v-if="item.node.data != -1" class="ml-1">{{ humanFileSize(item.node.data) }}</span>
       </template>
     </Tree>
     <p class="text-right">
