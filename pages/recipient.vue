@@ -2,6 +2,7 @@
 import CryptoJs from 'crypto-js'
 import { PeerDataChannel } from '~/utils/PeerDataChannel'
 
+const { t } = useI18n()
 const localePath = useLocalePath()
 const isModernFileAPISupport = ref(true)
 const toast = useToast()
@@ -52,6 +53,10 @@ let curFileWriter: FileSystemWritableFileStream | undefined
 let rootDirDH: FileSystemDirectoryHandle | undefined
 let reqFileResolveFn: () => void | undefined
 let reqFileRejecteFn: () => void | undefined
+
+useSeoMeta({
+  title: t('recipient')
+})
 
 // 关闭连接并清理资源
 function dispose() {
@@ -134,7 +139,7 @@ function initCurFile(key?: string) {
 
 // 处理JSON数据对象
 async function handleObjData(obj: any) {
-  console.log(obj)
+  // console.log(obj)
   if (obj.type === 'user') {
     // 用户信息
     peerUserInfo.value = obj.data
@@ -160,7 +165,12 @@ async function handleObjData(obj: any) {
       // 用户拒绝传输
       status.value.error.code = 403
       status.value.error.msg = '用户拒绝传输'
-      toast.add({ severity: 'error', summary: 'Error', detail: '用户拒绝传输', life: 5e3 })
+      toast.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: t('hint.refusesToTransmit'),
+        life: 5e3
+      })
     } else if (obj.data === 404) {
       // 找不到对应的文件
       toast.add({ severity: 'warn', summary: 'Warn', detail: '文件找不到', life: 3e3 })
@@ -172,7 +182,7 @@ async function handleObjData(obj: any) {
 // 初始化对等数据通道
 function initPDC() {
   status.value.isPeerConnecting = true
-  pdc = new PeerDataChannel(undefined, true)
+  pdc = new PeerDataChannel(pubIceServers, true)
   pdc.onSDP = (sdp) => ws?.send(JSON.stringify({ type: 'sdp', data: sdp }))
   pdc.onICECandidate = (candidate) =>
     ws?.send(JSON.stringify({ type: 'candidate', data: candidate }))
@@ -294,7 +304,12 @@ async function doRecive() {
     status.value.isDone = true
     calcSpeedFn()
     dispose()
-    toast.add({ severity: 'success', summary: 'Success', detail: '传输完成', life: 5e3 })
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: t('hint.transCompleted'),
+      life: 5e3
+    })
   } catch (e) {
     console.warn(e)
     clearInterval(calcSpeedJobId)
@@ -359,28 +374,28 @@ onUnmounted(() => {
           size="100"
           class="text-rose-500 dark:text-rose-600"
         />
-        <p class="text-xl tracking-wider py-8">取件码无效</p>
+        <p class="text-xl tracking-wider py-8">{{ $t('hint.invalidPickupCode') }}</p>
       </div>
-      <!-- 用户拒绝传输 -->
+      <!-- 对方拒绝传输 -->
       <div v-else-if="status.error.code === 403" class="text-center">
         <Icon
           name="solar:close-square-linear"
           size="100"
           class="text-rose-500 dark:text-rose-600"
         />
-        <p class="text-xl tracking-wider py-8">用户拒绝传输</p>
+        <p class="text-xl tracking-wider py-8">{{ $t('hint.refusesToTransmit') }}</p>
       </div>
       <!-- 其他错误 -->
       <div v-else class="text-center">
         <Icon name="solar:sad-square-line-duotone" size="100" />
-        <p class="text-xl tracking-wider py-8">服务异常，请稍后再试</p>
+        <p class="text-xl tracking-wider py-8">{{ $t('hint.serverError') }}</p>
         {{ status.error }}
       </div>
 
       <div class="text-center my-4">
         <NuxtLink :to="localePath('/')">
           <Button severity="contrast" class="tracking-wider"
-            ><Icon name="solar:home-2-linear" class="mr-2" />回首页</Button
+            ><Icon name="solar:home-2-linear" class="mr-2" />{{ $t('btn.toHome') }}</Button
           ></NuxtLink
         >
       </div>
@@ -389,7 +404,7 @@ onUnmounted(() => {
     <!-- 加载页面 -->
     <div v-else-if="status.isIniting" class="flex flex-col gap-4 items-center justify-center py-20">
       <div class="loader"></div>
-      <p class="text-xs tracking-wide">连接中</p>
+      <p class="text-xs tracking-wide">{{ $t('hint.connecting') }}</p>
     </div>
 
     <!-- 等待对方确认 -->
@@ -398,7 +413,7 @@ onUnmounted(() => {
       class="flex flex-col gap-4 items-center justify-center py-20"
     >
       <div class="loader"></div>
-      <p class="text-xs tracking-wide">等待对方确认</p>
+      <p class="text-xs tracking-wide">{{ $t('hint.waitingForConfirm') }}</p>
     </div>
 
     <!-- 连接成功页面 -->
@@ -467,7 +482,7 @@ onUnmounted(() => {
             ><span class="mx-1">/</span><span>{{ humanFileSize(curFile.size) }}</span>
           </p>
 
-          <p class="text-sm mt-4">总进度</p>
+          <p class="text-sm mt-4">{{ $t('btn.totalProgress') }}</p>
           <ProgressBar
             :value="
               Math.round(totalFileSize === 0 ? 0 : (totalTransmittedBytes / totalFileSize) * 100)
@@ -490,7 +505,9 @@ onUnmounted(() => {
             class="w-full tracking-wider"
             :disabled="!status.isConnectPeer || status.isReceiving"
             @click="doRecive"
-            ><Icon name="solar:archive-down-minimlistic-line-duotone" class="mr-2" />接收</Button
+            ><Icon name="solar:archive-down-minimlistic-line-duotone" class="mr-2" />{{
+              $t('btn.recive')
+            }}</Button
           >
           <Button
             v-if="status.isReceiving"
@@ -498,13 +515,13 @@ onUnmounted(() => {
             outlined
             severity="danger"
             class="w-full tracking-wider"
-            >终止</Button
+            >{{ $t('btn.terminate') }}</Button
           >
 
           <!-- 传输完成 -->
           <div v-if="status.isDone" class="flex flex-col items-center justify-center py-4 gap-4">
             <Icon name="solar:confetti-line-duotone" size="100" class="text-amber-500" />
-            <p class="text-xl tracking-wider">传输完成</p>
+            <p class="text-xl tracking-wider">{{ $t('hint.transCompleted') }}</p>
           </div>
 
           <Button
@@ -514,19 +531,21 @@ onUnmounted(() => {
             severity="contrast"
             class="w-full tracking-wider"
             @click="downloadFile"
-            ><Icon name="solar:download-minimalistic-linear" class="mr-2" />下载</Button
+            ><Icon name="solar:download-minimalistic-linear" class="mr-2" />{{
+              $t('btn.download')
+            }}</Button
           >
 
           <div v-if="status.isDone" class="py-6">
             <NuxtLink to="https://www.buymeacoffee.com/shouchen" target="_blank">
               <Button rounded outlined severity="contrast" class="w-full tracking-wider"
-                ><IconCoffee class="size-[1.125rem] mr-2" />请我喝咖啡</Button
+                ><IconCoffee class="size-[1.125rem] mr-2" />{{ $t('btn.buyMeCoffee') }}</Button
               >
             </NuxtLink>
 
             <NuxtLink :to="localePath('/')">
               <Button rounded severity="contrast" class="w-full tracking-wider block mt-6"
-                ><Icon name="solar:home-2-linear" class="mr-2" />回首页</Button
+                ><Icon name="solar:home-2-linear" class="mr-2" />{{ $t('btn.toHome') }}</Button
               ></NuxtLink
             >
           </div>
@@ -539,19 +558,19 @@ onUnmounted(() => {
             size="96"
             class="text-amber-500 dark:text-amber-600"
           />
-          <!-- 不支持目录传输 -->
+          <!-- 当前浏览器不支持目录传输 -->
           <div v-if="status.warn.code === -1">
-            <p class="text-xl tracking-wider">不支持目录传输</p>
+            <p class="text-xl tracking-wider">{{ $t('hint.noSupportDirTrans') }}</p>
           </div>
           <!-- 连接异常中断 -->
           <div v-else-if="status.warn.code === -2">
-            <p class="text-xl tracking-wider">连接断开，传输失败</p>
+            <p class="text-xl tracking-wider">{{ $t('hint.connectInterrupted') }}</p>
           </div>
 
           <div class="text-center py-4">
             <NuxtLink :to="localePath('/')">
               <Button severity="contrast" class="tracking-wider"
-                ><Icon name="solar:home-2-linear" class="mr-2" />回首页</Button
+                ><Icon name="solar:home-2-linear" class="mr-2" />{{ $t('btn.toHome') }}</Button
               ></NuxtLink
             >
           </div>

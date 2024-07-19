@@ -5,6 +5,8 @@ const toast = useToast()
 const isModernFileAPISupport = ref(true)
 const reciveCode = ref('')
 
+const { data: transCount } = useFetch('/api/transCount', { method: 'post' })
+
 function syncDir() {
   // if (isModernFileAPISupport.value) {
   // showDirectoryPicker()
@@ -36,14 +38,14 @@ function syncDir() {
       if (Object.keys(fileMap).length === 0) {
         throw 'The directory is empty'
       }
-      console.log(fileMap)
+      // console.log(fileMap)
       useFilesInfo('syncDir', fileMap)
       router.push(localePath('/sender'))
       useFullScreenLoader(false)
     })
     .catch((e) => {
       console.warn(e)
-      toast.add({ severity: 'error', summary: 'Error', detail: e, life: 3000 })
+      toast.add({ severity: 'error', summary: 'Error', detail: e, life: 5e3 })
       useFullScreenLoader(false)
     })
   // }
@@ -63,7 +65,7 @@ function sendDir() {
     })
     .catch((e) => {
       console.warn(e)
-      toast.add({ severity: 'error', summary: 'Error', detail: e, life: 3000 })
+      toast.add({ severity: 'error', summary: 'Error', detail: e, life: 5e3 })
       useFullScreenLoader(false)
     })
 }
@@ -76,7 +78,7 @@ function sendFile() {
     })
     .catch((e) => {
       console.warn(e)
-      toast.add({ severity: 'error', summary: 'Error', detail: e, life: 3000 })
+      toast.add({ severity: 'error', summary: 'Error', detail: e, life: 5e3 })
       useFullScreenLoader(false)
     })
 }
@@ -103,7 +105,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="md:px-[10vw] pb-8">
+  <div class="md:px-[10vw] pb-4">
     <div
       class="fixed top-0 left-0 right-0 bottom-0 inset-0 -z-50 h-full w-full bg-white dark:bg-zinc-950 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#25272b_1px,transparent_1px)] [background-size:16px_16px]"
     ></div>
@@ -149,6 +151,7 @@ onMounted(() => {
           }}</Button
         >
         <Button
+          v-if="false"
           rounded
           class="block w-full tracking-wider"
           severity="contrast"
@@ -175,6 +178,12 @@ onMounted(() => {
           </template>
         </InputOtp>
       </div>
+    </div>
+
+    <div class="flex flex-row items-baseline justify-center pt-8 text-sm">
+      <span>{{ $t('label.transmitted') }}</span>
+      <span class="text-2xl m-2 tracking-wider">{{ transCount }}</span>
+      <span>{{ $t('label.times') }}</span>
     </div>
   </div>
 </template>

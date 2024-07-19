@@ -1,4 +1,5 @@
 import TTLCache from '@isaacs/ttlcache'
+import { increaseTransCount } from '../utils/TransCount'
 
 // 客户端待初始化连接池，key是peer的id
 const initPool = new TTLCache<string, any>({
@@ -85,6 +86,7 @@ function initRecive(peer: any, code: string) {
   initedPool.set(targetPeer.id, targetPeer)
   // 配对成功
   peer.send(JSON.stringify({ type: 'status', code: 0 }))
+  increaseTransCount()
 }
 
 export default defineWebSocketHandler({

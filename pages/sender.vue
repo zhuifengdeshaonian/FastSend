@@ -2,6 +2,7 @@
 import { toCanvas } from 'qrcode'
 import { PeerDataChannel } from '~/utils/PeerDataChannel'
 
+const { t } = useI18n()
 const localePath = useLocalePath()
 const router = useRouter()
 const toast = useToast()
@@ -38,6 +39,10 @@ const status = ref({
 let ws: WebSocket | null
 let pdc: PeerDataChannel | null
 
+useSeoMeta({
+  title: t('sender')
+})
+
 function dispose() {
   ws?.close()
   pdc?.dispose()
@@ -56,7 +61,7 @@ async function confirmUser(isTrust: boolean) {
 }
 
 async function handleObjData(obj: any) {
-  console.log(obj)
+  // console.log(obj)
   if (obj.type === 'user') {
     // 用户信息
     peerUserInfo.value = obj.data
@@ -66,7 +71,7 @@ async function handleObjData(obj: any) {
     const fileDetail = filesInfo.value.fileMap[obj.data]
     const file = fileDetail?.file
     const name = fileDetail?.paths[fileDetail?.paths?.length - 1] + ''
-    console.log(fileDetail)
+    // console.log(fileDetail)
 
     if (!file) {
       // 找不到对应的文件
@@ -102,7 +107,12 @@ async function handleObjData(obj: any) {
     // 传输完成
     status.value.isDone = true
     dispose()
-    toast.add({ severity: 'success', summary: 'Success', detail: '传输完成', life: 5e3 })
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: t('hint.transCompleted'),
+      life: 5e3
+    })
   } else if (obj.type === 'err') {
     // 错误
     if (obj.data) {
@@ -113,7 +123,7 @@ async function handleObjData(obj: any) {
 }
 
 function initPDC() {
-  pdc = new PeerDataChannel()
+  pdc = new PeerDataChannel(pubIceServers)
   pdc.onSDP = (sdp) => ws?.send(JSON.stringify({ type: 'sdp', data: sdp }))
   pdc.onICECandidate = (candidate) =>
     ws?.send(JSON.stringify({ type: 'candidate', data: candidate }))
@@ -162,7 +172,7 @@ onMounted(() => {
     return
   }
   if (Object.keys(filesInfo.value.fileMap).length === 0) {
-    toast.add({ severity: 'warn', summary: 'Warn', detail: '目录为空', life: 3000 })
+    toast.add({ severity: 'warn', summary: 'Warn', detail: '目录为空', life: 5e3 })
     router.replace(localePath('/'))
     return
   }
@@ -171,7 +181,6 @@ onMounted(() => {
     ws = new WebSocket('/api/connect')
   } catch (e) {
     // 连接信令服务器失败
-    console.error(e)
     console.error(e)
     status.value.error.code = -5
     status.value.error.msg = e + ''
@@ -237,18 +246,18 @@ onUnmounted(() => {
     <div v-if="status.error.code !== 0">
       <div v-if="status.error.code === -1" class="text-center">
         <Icon name="material-symbols-light:account-circle-off-outline-rounded" size="100" />
-        <p class="text-xl tracking-wider py-8">当前连接人数太多，请稍后再试</p>
+        <p class="text-xl tracking-wider py-8">{{ $t('hint.toManyPeople') }}</p>
       </div>
 
       <div v-else class="text-center">
         <Icon name="solar:sad-square-line-duotone" size="100" />
-        <p class="text-xl tracking-wider py-8">服务异常，请稍后再试</p>
+        <p class="text-xl tracking-wider py-8">{{ $t('hint.serverError') }}</p>
       </div>
 
       <div class="text-center py-4">
         <NuxtLink :to="localePath('/')">
           <Button severity="contrast" class="tracking-wider"
-            ><Icon name="solar:home-2-linear" class="mr-2" />回首页</Button
+            ><Icon name="solar:home-2-linear" class="mr-2" />{{ $t('btn.toHome') }}</Button
           ></NuxtLink
         >
       </div>
@@ -257,13 +266,13 @@ onUnmounted(() => {
     <!-- 加载页面 -->
     <div v-else-if="status.isIniting" class="flex flex-col gap-4 items-center justify-center py-20">
       <div class="loader"></div>
-      <p class="text-xs">连接中</p>
+      <p class="text-xs">{{ $t('hint.connecting') }}</p>
     </div>
 
     <!-- 等待链接 -->
     <div v-else-if="status.isWaitingConnect" class="mt-4 mb-16">
       <div class="md:mx-[10vw] p-4 text-center">
-        <p class="text-xl tracking-wider">取件码</p>
+        <p class="text-xl tracking-wider">{{ $t('label.reciveCode') }}</p>
         <p
           class="mt-6 inline-block text-6xl md:text-7xl tracking-widest border py-4 px-8 border-dashed border-neutral-400 dark:border-neutral-500"
         >
@@ -274,7 +283,9 @@ onUnmounted(() => {
       <div class="flex flex-col items-center justify-center gap-4">
         <canvas ref="qrcodeElm" class="size-52"></canvas>
         <Button size="small" severity="contrast" @click="copyLink" class="tracking-wider"
-          ><Icon name="solar:link-minimalistic-2-linear" class="mr-2" />复制链接</Button
+          ><Icon name="solar:link-minimalistic-2-linear" class="mr-2" />{{
+            $t('btn.copyLink')
+          }}</Button
         >
       </div>
     </div>
@@ -300,16 +311,16 @@ onUnmounted(() => {
           class="text-amber-500 dark:text-amber-600"
         />
         <p v-if="status.warn.code === -1" class="text-xl tracking-wider">
-          对方不支持现代文件访问API
+          {{ $t('hint.noSupportFileAccessAPI') }}
         </p>
         <p v-else-if="status.warn.code === -10" class="text-xl tracking-wider">
-          连接中断，传输失败
+          {{ $t('hint.connectInterrupted') }}
         </p>
 
         <div class="text-center py-4">
           <NuxtLink :to="localePath('/')">
             <Button severity="contrast" class="tracking-wider"
-              ><Icon name="solar:home-2-linear" class="mr-2" />回首页</Button
+              ><Icon name="solar:home-2-linear" class="mr-2" />{{ $t('btn.toHome') }}</Button
             ></NuxtLink
           >
         </div>
@@ -317,21 +328,21 @@ onUnmounted(() => {
 
       <!-- 传输确认 -->
       <div v-else-if="status.isWaitingConfirm" class="p-4 mt-6">
-        <p class="text-center text-2xl tracking-wider">确定继续传输吗</p>
+        <p class="text-center text-2xl tracking-wider">{{ $t('hint.areYouSureContinue') }}</p>
         <div class="flex flex-row items-center justify-center gap-6 mt-8">
           <Button outlined severity="danger" @click="confirmUser(false)" class="tracking-wider"
-            ><Icon name="solar:close-square-linear" class="mr-2" />取消</Button
+            ><Icon name="solar:close-square-linear" class="mr-2" />{{ $t('btn.cancel') }}</Button
           >
 
           <Button severity="contrast" @click="confirmUser(true)" class="tracking-wider"
-            ><Icon name="solar:check-square-linear" class="mr-2" />确定</Button
+            ><Icon name="solar:check-square-linear" class="mr-2" />{{ $t('btn.ok') }}</Button
           >
         </div>
       </div>
 
       <!-- 发送端主界面 -->
       <div v-else-if="!status.isDone" class="p-4 mt-4 md:w-[50%] md:mx-auto">
-        <p class="text-center text-xl tracking-wider my-4">传输中</p>
+        <p class="text-center text-xl tracking-wider my-4">{{ $t('hint.inTransit') }}</p>
 
         <div class="mt-8">
           <p class="text-sm mt-2">{{ curFile.name }}</p>
@@ -350,7 +361,7 @@ onUnmounted(() => {
         <div class="text-center mt-8">
           <NuxtLink :to="localePath('/')">
             <Button outlined severity="danger" class="tracking-wider"
-              ><Icon name="solar:stop-linear" class="mr-2" />终止</Button
+              ><Icon name="solar:stop-linear" class="mr-2" />{{ $t('btn.terminate') }}</Button
             ></NuxtLink
           >
         </div>
@@ -359,18 +370,18 @@ onUnmounted(() => {
       <!-- 发送完毕 -->
       <div v-else class="flex flex-col items-center justify-center py-10 gap-4">
         <Icon name="solar:confetti-line-duotone" size="100" class="text-amber-500" />
-        <p class="text-xl tracking-wider">传输完成</p>
+        <p class="text-xl tracking-wider">{{ $t('hint.transCompleted') }}</p>
 
         <div class="py-4 flex flex-col md:flex-row items-center justify-center gap-6">
           <NuxtLink to="https://www.buymeacoffee.com/shouchen" target="_blank">
             <Button outlined severity="contrast" class="tracking-wider"
-              ><IconCoffee class="size-[1.125rem] mr-2" />请我喝咖啡</Button
+              ><IconCoffee class="size-[1.125rem] mr-2" />{{ $t('btn.buyMeCoffee') }}</Button
             >
           </NuxtLink>
 
           <NuxtLink :to="localePath('/')">
             <Button severity="contrast" class="tracking-wider"
-              ><Icon name="solar:home-2-linear" class="mr-2" />回首页</Button
+              ><Icon name="solar:home-2-linear" class="mr-2" />{{ $t('btn.toHome') }}</Button
             ></NuxtLink
           >
         </div>

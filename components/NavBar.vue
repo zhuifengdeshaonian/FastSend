@@ -51,6 +51,25 @@ function editAvatar() {
   })
 }
 
+// 重置用户信息
+function clearUserInfo() {
+  initAvatar()
+  userInfo.value.nickname = 'User_' + genRandomString(6)
+  tmpNickname.value = userInfo.value.nickname
+  localStorage.setItem('nickname', userInfo.value.nickname)
+}
+
+function initAvatar() {
+  const fr = new FileReader()
+  fr.onload = () => {
+    userInfo.value.avatarURL = fr.result + ''
+    localStorage.setItem('avatarURL', userInfo.value.avatarURL)
+  }
+  fetch('/akari.webp')
+    .then((res) => res.blob())
+    .then((blob) => fr.readAsDataURL(blob))
+}
+
 onMounted(() => {
   window.addEventListener('scroll', () => {
     isBgBlur.value = getScrollTop() > 64
@@ -67,14 +86,7 @@ onMounted(() => {
   // 初始化头像
   const avatarURL = localStorage.getItem('avatarURL')
   if (!avatarURL) {
-    const fr = new FileReader()
-    fr.onload = () => {
-      userInfo.value.avatarURL = fr.result + ''
-      localStorage.setItem('avatarURL', userInfo.value.avatarURL)
-    }
-    fetch('/akari.webp')
-      .then((res) => res.blob())
-      .then((blob) => fr.readAsDataURL(blob))
+    initAvatar()
   } else {
     userInfo.value.avatarURL = avatarURL
   }
@@ -105,27 +117,43 @@ onMounted(() => {
         {{ userInfo.nickname }}
       </p>
     </div>
+
+    <!-- 用户信息弹出框 -->
     <OverlayPanel ref="op">
-      <div class="flex flex-col items-center gap-4">
-        <Avatar
-          :image="userInfo.avatarURL"
-          shape="circle"
-          class="shadow-md cursor-pointer"
-          size="xlarge"
-          @click="editAvatar"
-        />
-        <InputGroup>
-          <InputText
-            severity="contrast"
-            size="small"
-            placeholder="昵称"
-            v-model:model-value="tmpNickname"
-            @keydown.enter="editNickname"
+      <div class="relative">
+        <Button
+          severity="secondary"
+          text
+          @click="clearUserInfo"
+          size="small"
+          style="position: absolute"
+          class="py-3 top-0 right-0 z-10"
+          aria-label="Language"
+        >
+          <Icon name="material-symbols:sync-rounded" class="text-rose-500 dark:text-rose-600" />
+        </Button>
+
+        <div class="relative flex flex-col items-center gap-4">
+          <Avatar
+            :image="userInfo.avatarURL"
+            shape="circle"
+            class="shadow-md cursor-pointer"
+            size="xlarge"
+            @click="editAvatar"
           />
-          <Button severity="contrast" size="small" class="m-0" @click="editNickname"
-            ><Icon name="material-symbols:check-rounded"
-          /></Button>
-        </InputGroup>
+          <InputGroup>
+            <InputText
+              severity="contrast"
+              size="small"
+              placeholder="昵称"
+              v-model:model-value="tmpNickname"
+              @keydown.enter="editNickname"
+            />
+            <Button severity="contrast" size="small" class="m-0" @click="editNickname"
+              ><Icon name="material-symbols:check-rounded"
+            /></Button>
+          </InputGroup>
+        </div>
       </div>
     </OverlayPanel>
 
