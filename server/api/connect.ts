@@ -75,7 +75,7 @@ function initSend(peer: any) {
 }
 
 // 初始化接收端
-function initRecive(peer: any, code: string) {
+function initReceive(peer: any, code: string) {
   if (peer.pairPeer) {
     // throw new Error('Already paired')
     return
@@ -118,10 +118,10 @@ export default defineWebSocketHandler({
       if (data.type === 'send') {
         // 发送端初始化
         initSend(peer)
-      } else if (data.type === 'recive') {
+      } else if (data.type === 'receive') {
         // 接收端初始化
         if (/^\d{4}$/.test(data.code)) {
-          initRecive(peer, data.code)
+          initReceive(peer, data.code)
         } else {
           // 如果code不是4位数字，则断开
           disposePeer(peer)

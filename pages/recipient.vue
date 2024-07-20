@@ -12,8 +12,8 @@ const peerUserInfo = ref({ nickname: 'unknown', avatarURL: '' })
 const peerFilesInfo = ref<any>({ type: '', fileMap: {} })
 const selectedKeys = ref({})
 const code = ref('')
-const waitReciveFileList = ref<string[]>([])
-const reciveFileIndex = ref(0)
+const waitReceiveFileList = ref<string[]>([])
+const receiveFileIndex = ref(0)
 const totalFileSize = ref(0)
 const totalTransmittedBytes = ref(0)
 const startTime = ref(0)
@@ -190,7 +190,10 @@ function initPDC() {
     console.log('onDispose')
 
     status.value.isConnectPeer = false
-    if (status.value.isWaitingPeerConfirm) {
+    if (status.value.isIniting) {
+      // 尝试连接失败（超时）
+      status.value.error.code = -10
+    } else if (status.value.isWaitingPeerConfirm) {
       status.value.error.code = 403
     } else if (status.value.isReceiving) {
       status.value.warn.code = -2
@@ -216,7 +219,7 @@ function initPDC() {
     status.value.isIniting = false
   }
   pdc.onOpen = () => pdc?.sendData(JSON.stringify({ type: 'user', data: userInfo.value }))
-  pdc.onRecive = async (data) => {
+  pdc.onReceive = async (data) => {
     // console.log('data', data)
     if (typeof data === 'string') {
       await handleObjData(JSON.parse(data))
@@ -236,7 +239,7 @@ async function requestFile(key: string) {
 }
 
 // 开始接收
-async function doRecive() {
+async function doReceive() {
   if (status.value.isReceiving) {
     return
   }
@@ -244,21 +247,21 @@ async function doRecive() {
 
   if (peerFilesInfo.value.type !== 'transFile') {
     // 如果传输目录，则至少要选择一个文件
-    waitReciveFileList.value = Object.keys(selectedKeys.value).filter((n) => !/\/$/.test(n))
-    if (waitReciveFileList.value.length === 0) {
+    waitReceiveFileList.value = Object.keys(selectedKeys.value).filter((n) => !/\/$/.test(n))
+    if (waitReceiveFileList.value.length === 0) {
       toast.add({ severity: 'warn', summary: 'Warn', detail: '请至少选择一个文件', life: 3e3 })
       status.value.isReceiving = false
       return
     }
     totalFileSize.value = 0
-    waitReciveFileList.value.forEach((name) => {
+    waitReceiveFileList.value.forEach((name) => {
       totalFileSize.value += peerFilesInfo.value.fileMap[name]?.size
     })
   }
   status.value.isLock = true
 
   // 初始化参数
-  reciveFileIndex.value = 0
+  receiveFileIndex.value = 0
   totalTransmittedBytes.value = 0
   startTime.value = new Date().getTime()
   // 启动传输速度计算定时器
@@ -278,9 +281,9 @@ async function doRecive() {
     } else if (peerFilesInfo.value.type === 'transDir') {
       // 传输目录
       rootDirDH = await showDirectoryPicker()
-      // console.log(waitReciveFileList.value);
-      for (let i = 0; i < waitReciveFileList.value.length; i++) {
-        const key = waitReciveFileList.value[i]
+      // console.log(waitReceiveFileList.value);
+      for (let i = 0; i < waitReceiveFileList.value.length; i++) {
+        const key = waitReceiveFileList.value[i]
         const paths = key.split('/')
         console.log(paths)
 
@@ -331,7 +334,7 @@ onMounted(() => {
   ws = new WebSocket(location.origin.replace('http', 'ws') + '/api/connect')
   ws.onopen = () => {
     status.value.isConnectServer = true
-    ws?.send(JSON.stringify({ type: 'recive', code: code.value }))
+    ws?.send(JSON.stringify({ type: 'receive', code: code.value }))
   }
   ws.onmessage = (e) => {
     const data = JSON.parse(e.data)
@@ -385,6 +388,15 @@ onUnmounted(() => {
           class="text-rose-500 dark:text-rose-600"
         />
         <p class="text-xl tracking-wider py-8">{{ $t('hint.refusesToTransmit') }}</p>
+      </div>
+      <!-- 连接超时 -->
+      <div v-else-if="status.error.code === -10" class="text-center">
+        <Icon
+          name="material-symbols:timer-off-outline-rounded"
+          size="100"
+          class="text-rose-500 dark:text-rose-600"
+        />
+        <p class="text-xl tracking-wider py-8">{{ $t('hint.connectTimeout') }}</p>
       </div>
       <!-- 其他错误 -->
       <div v-else class="text-center">
@@ -483,7 +495,7 @@ onUnmounted(() => {
             ><span class="mx-1">/</span><span>{{ humanFileSize(curFile.size) }}</span>
           </p>
 
-          <p class="text-sm mt-4">{{ $t('btn.totalProgress') }}</p>
+          <p class="text-sm mt-4">{{ $t('label.totalProgress') }}</p>
           <ProgressBar
             :value="
               Math.round(totalFileSize === 0 ? 0 : (totalTransmittedBytes / totalFileSize) * 100)
@@ -505,9 +517,9 @@ onUnmounted(() => {
             severity="contrast"
             class="w-full tracking-wider"
             :disabled="!status.isConnectPeer || status.isReceiving"
-            @click="doRecive"
+            @click="doReceive"
             ><Icon name="solar:archive-down-minimlistic-line-duotone" class="mr-2" />{{
-              $t('btn.recive')
+              $t('btn.receive')
             }}</Button
           >
           <Button
@@ -579,7 +591,7 @@ onUnmounted(() => {
 
         <!-- <p>{{ totalFileSize }}</p>
           <p>{{ totalTransmittedBytes }}</p>
-          <p>{{ waitReciveFileList }}</p> -->
+          <p>{{ waitReceiveFileList }}</p> -->
       </div>
     </div>
   </div>

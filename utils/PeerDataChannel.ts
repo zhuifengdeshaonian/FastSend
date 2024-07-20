@@ -2,7 +2,7 @@ export class PeerDataChannel {
   private static BLOCK_SIZE = 16383
   private pc: RTCPeerConnection
   private dc: RTCDataChannel | null = null
-  private reciveData: {
+  private receiveData: {
     startTime: number
     offset: number
     count: number
@@ -11,7 +11,7 @@ export class PeerDataChannel {
   } = { startTime: 0, offset: 0, count: 0, type: '', chunks: [] }
   private sendPromiseReject: (reason?: any) => void = () => {}
   private eventQueue: EventQueue<any>
-  public onRecive: (
+  public onReceive: (
     data: ArrayBuffer | string,
     info: { size: number; duration: number }
   ) => Promise<void> = () => new Promise<void>(() => {})
@@ -51,10 +51,10 @@ export class PeerDataChannel {
   }
 
   private async onData(data: any) {
-    const reciveData = this.reciveData
-    if (reciveData.offset === reciveData.count) {
+    const receiveData = this.receiveData
+    if (receiveData.offset === receiveData.count) {
       const dat = JSON.parse(data)
-      this.reciveData = {
+      this.receiveData = {
         startTime: new Date().getTime(),
         offset: 0,
         count: dat.count,
@@ -62,23 +62,23 @@ export class PeerDataChannel {
         chunks: []
       }
     } else {
-      reciveData.chunks.push(data)
-      reciveData.offset++
-      if (reciveData.offset === reciveData.count) {
+      receiveData.chunks.push(data)
+      receiveData.offset++
+      if (receiveData.offset === receiveData.count) {
         const endTime = new Date().getTime()
-        const b = new Blob(reciveData.chunks)
-        if (reciveData.type === 'string') {
-          await this.onRecive(await b.text(), {
+        const b = new Blob(receiveData.chunks)
+        if (receiveData.type === 'string') {
+          await this.onReceive(await b.text(), {
             size: b.size,
-            duration: endTime - reciveData.startTime
+            duration: endTime - receiveData.startTime
           })
         } else {
-          await this.onRecive(await b.arrayBuffer(), {
+          await this.onReceive(await b.arrayBuffer(), {
             size: b.size,
-            duration: endTime - reciveData.startTime
+            duration: endTime - receiveData.startTime
           })
         }
-        reciveData.chunks = []
+        receiveData.chunks = []
       }
     }
   }
@@ -198,7 +198,7 @@ export class PeerDataChannel {
 
   public getReciviedBufferSize() {
     let size = 0
-    this.reciveData.chunks.forEach(
+    this.receiveData.chunks.forEach(
       (dat) => (size += typeof dat === 'string' ? dat.length : dat.byteLength)
     )
     return size

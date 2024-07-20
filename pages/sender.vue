@@ -146,7 +146,7 @@ function initPDC() {
     status.value.isConnectPeer = true
     status.value.isWaitingConfirm = true
   }
-  pdc.onRecive = async (data, info) => {
+  pdc.onReceive = async (data, info) => {
     // console.log('data', data)
     // console.log(info.size, info.duration, info.size / (info.duration / 1e3))
 
@@ -272,7 +272,7 @@ onUnmounted(() => {
     <!-- 等待链接 -->
     <div v-else-if="status.isWaitingConnect" class="mt-4 mb-16">
       <div class="md:mx-[10vw] p-4 text-center">
-        <p class="text-xl tracking-wider">{{ $t('label.reciveCode') }}</p>
+        <p class="text-xl tracking-wider">{{ $t('label.receiveCode') }}</p>
         <p
           class="mt-6 inline-block text-6xl md:text-7xl tracking-widest border py-4 px-8 border-dashed border-neutral-400 dark:border-neutral-500"
         >

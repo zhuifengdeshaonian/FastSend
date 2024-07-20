@@ -16,8 +16,8 @@ export default defineI18nConfig(() => ({
         hoursAgo: '{n} hours ago',
         daysAgo: '{n} days ago',
         send: 'Send',
-        recive: 'Recive',
-        reciveCode: 'Recive Code',
+        receive: 'Receive',
+        receiveCode: 'Receive Code',
         quickStart: 'Qucik Start',
         transmitted: 'Transmitted',
         times: 'times',
@@ -29,7 +29,7 @@ export default defineI18nConfig(() => ({
         ok: 'OK',
         cancel: 'Cancel',
         send: 'Send',
-        recive: 'Recive',
+        receive: 'Receive',
         clear: 'Clear',
         download: 'Download',
         copy: 'Copy',
@@ -56,7 +56,8 @@ export default defineI18nConfig(() => ({
         invalidPickupCode: 'Invalid pickup code',
         refusesToTransmit: 'The other party refuses to transmit',
         waitingForConfirm: 'Waiting for confirmation from the other party',
-        noSupportDirTrans: 'The current browser does not support directory transfer'
+        noSupportDirTrans: 'The current browser does not support directory transfer',
+        connectTimeout: 'Connection timeout'
       }
     },
     zh: {
@@ -73,8 +74,8 @@ export default defineI18nConfig(() => ({
         hoursAgo: '{n} 小时前',
         daysAgo: '{n} 天前',
         send: '发送',
-        recive: '接收',
-        reciveCode: '取件码',
+        receive: '接收',
+        receiveCode: '取件码',
         quickStart: '快速开始',
         transmitted: '已传输',
         times: '次',
@@ -86,7 +87,7 @@ export default defineI18nConfig(() => ({
         ok: '确定',
         cancel: '取消',
         send: '发送',
-        recive: '接收',
+        receive: '接收',
         clear: '清空',
         download: '下载',
         copy: '复制',
@@ -113,7 +114,8 @@ export default defineI18nConfig(() => ({
         invalidPickupCode: '取件码无效',
         refusesToTransmit: '对方拒绝传输',
         waitingForConfirm: '等待对方确认',
-        noSupportDirTrans: '当前浏览器不支持目录传输'
+        noSupportDirTrans: '当前浏览器不支持目录传输',
+        connectTimeout: '连接超时'
       }
     }
   }

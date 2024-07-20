@@ -4,7 +4,7 @@ const localePath = useLocalePath()
 const router = useRouter()
 const toast = useToast()
 const isModernFileAPISupport = ref(true)
-const reciveCode = ref('')
+const receiveCode = ref('')
 
 const { data: transCount } = useFetch('/api/transCount', { method: 'post' })
 
@@ -92,14 +92,14 @@ function sendFile() {
 }
 
 watch(
-  reciveCode,
+  receiveCode,
   () => {
-    if (reciveCode.value.length === 4) {
-      if (/^\d{4}$/.test(reciveCode.value)) {
+    if (receiveCode.value.length === 4) {
+      if (/^\d{4}$/.test(receiveCode.value)) {
         useFullScreenLoader(true)
-        router.push({ path: localePath('recipient'), query: { code: reciveCode.value } })
+        router.push({ path: localePath('recipient'), query: { code: receiveCode.value } })
       } else {
-        reciveCode.value = reciveCode.value.replaceAll(' ', '')
+        receiveCode.value = receiveCode.value.replaceAll(' ', '')
       }
     }
     // console.log(inputCode.value)
@@ -172,10 +172,10 @@ onMounted(() => {
 
       <div class="flex flex-col items-center space-y-6 mt-8 md:mt-0">
         <h2 class="text-2xl tracking-wider flex flex-row items-center gap-2">
-          <Icon name="solar:card-recive-linear" />{{ $t('label.reciveCode') }}
+          <Icon name="solar:card-recive-linear" />{{ $t('label.receiveCode') }}
         </h2>
 
-        <InputOtp integerOnly v-model:model-value="reciveCode" class="gap-4">
+        <InputOtp integerOnly v-model:model-value="receiveCode" class="gap-4">
           <template #default="{ attrs, events, index }">
             <input
               :autofocus="index === 1"
