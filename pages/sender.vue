@@ -178,7 +178,7 @@ onMounted(() => {
   }
 
   try {
-    ws = new WebSocket('/api/connect')
+    ws = new WebSocket(location.origin.replace('http', 'ws') + '/api/connect')
   } catch (e) {
     // 连接信令服务器失败
     console.error(e)

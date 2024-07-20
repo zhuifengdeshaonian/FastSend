@@ -328,7 +328,7 @@ onMounted(() => {
   code.value = query.code + ''
 
   // 初始化信令服务器连接WebSocker
-  ws = new WebSocket('/api/connect')
+  ws = new WebSocket(location.origin.replace('http', 'ws') + '/api/connect')
   ws.onopen = () => {
     status.value.isConnectServer = true
     ws?.send(JSON.stringify({ type: 'recive', code: code.value }))
@@ -356,6 +356,7 @@ onMounted(() => {
     console.error(err)
     status.value.isConnectServer = false
   }
+  useFullScreenLoader(false)
 })
 
 onUnmounted(() => {

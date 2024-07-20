@@ -15,13 +15,14 @@ onMounted(() => {
 </script>
 
 <template>
+  <NuxtPwaManifest />
   <NuxtRouteAnnouncer />
   <FullScreenLoader />
   <Toast position="top-right" />
   <NavBar />
   <NuxtPage />
   <div class="my-12">
-    <p class="text-center text-sm text-neutral-500/80">fastsend.ing | v0.1.1</p>
+    <p class="text-center text-sm text-neutral-500/80">fastsend.ing | v0.1.3</p>
   </div>
   <ScrollTop />
 </template>

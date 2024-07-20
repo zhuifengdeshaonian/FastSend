@@ -34,12 +34,22 @@ const initedPool = new TTLCache<string, any>({
   }
 })
 
+// 断开并清理连接
 function disposePeer(peer: any) {
   initPool.delete(peer.id)
   initedPool.delete(peer.id)
   peer.ctx.node.ws.close()
   if (peer.pairPeer && peer.pairPeer.readyState === 1) {
     disposePeer(peer.pairPeer)
+  }
+}
+
+function heartbeat(peer: any) {
+  peer.send(JSON.stringify({ type: 'ping' }))
+  if (peer.readyState === 1) {
+    setTimeout(() => {
+      heartbeat(peer)
+    }, 5e3)
   }
 }
 
@@ -61,6 +71,7 @@ function initSend(peer: any) {
   initPool.delete(peer.id)
   // 初始化发送端成功，返回连接码
   peer.send(JSON.stringify({ type: 'code', code: code }))
+  heartbeat(peer)
 }
 
 // 初始化接收端
@@ -86,6 +97,7 @@ function initRecive(peer: any, code: string) {
   initedPool.set(targetPeer.id, targetPeer)
   // 配对成功
   peer.send(JSON.stringify({ type: 'status', code: 0 }))
+  heartbeat(peer)
   increaseTransCount()
 }
 

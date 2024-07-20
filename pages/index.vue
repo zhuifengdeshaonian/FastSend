@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { t } = useI18n()
 const localePath = useLocalePath()
 const router = useRouter()
 const toast = useToast()
@@ -6,6 +7,10 @@ const isModernFileAPISupport = ref(true)
 const reciveCode = ref('')
 
 const { data: transCount } = useFetch('/api/transCount', { method: 'post' })
+
+useSeoMeta({
+  title: t('home')
+})
 
 function syncDir() {
   // if (isModernFileAPISupport.value) {
@@ -54,7 +59,10 @@ function syncDir() {
 function sendDir() {
   // 注意：移动端不支持选择目录
   selectDir()
-    .then((files) => dealFilesFormList(files))
+    .then((files) => {
+      useFullScreenLoader(true)
+      return dealFilesFormList(files)
+    })
     .then((fileMap) => {
       if (Object.keys(fileMap).length === 0) {
         throw '目录为空'
@@ -88,6 +96,7 @@ watch(
   () => {
     if (reciveCode.value.length === 4) {
       if (/^\d{4}$/.test(reciveCode.value)) {
+        useFullScreenLoader(true)
         router.push({ path: localePath('recipient'), query: { code: reciveCode.value } })
       } else {
         reciveCode.value = reciveCode.value.replaceAll(' ', '')
