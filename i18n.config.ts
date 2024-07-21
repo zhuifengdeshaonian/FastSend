@@ -47,6 +47,8 @@ export default defineI18nConfig(() => ({
           'Warning: Your browser does not support modern file access APIs, making the `Folder synchronization` and `Send folder` features unavailable. Additionally, the file receiving limit is 1GB.',
         toManyPeople: 'There are too many people currently connected, please try again later',
         serverError: 'The service is abnormal, please try again later',
+        closeTheProxy:
+          'If you are currently in a proxy environment, please close the proxy and try again',
         connecting: 'Connecting',
         noSupportFileAccessAPI: 'The counterparty does not support modern file access APIs',
         connectInterrupted: 'Connection interrupted, transmission failed',
@@ -105,6 +107,7 @@ export default defineI18nConfig(() => ({
           '警告：您的浏览器不支持现代文件访问API，无法使用`目录同步`以及`发送目录`功能，同时接收文件限制1GB。',
         toManyPeople: '当前连接人数太多，请稍后再试',
         serverError: '服务异常，请稍后再试',
+        closeTheProxy: '如果当前处于代理环境，请关闭代理重试',
         connecting: '连接中',
         noSupportFileAccessAPI: '对方不支持现代文件访问API',
         connectInterrupted: '连接中断，传输失败',

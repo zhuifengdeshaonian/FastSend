@@ -401,8 +401,8 @@ onUnmounted(() => {
       <!-- 其他错误 -->
       <div v-else class="text-center">
         <Icon name="solar:sad-square-line-duotone" size="100" />
-        <p class="text-xl tracking-wider py-8">{{ $t('hint.serverError') }}</p>
-        {{ status.error }}
+        <p class="text-xl tracking-wider pt-8">{{ $t('hint.serverError') }}</p>
+        <p class="text-sm tracking-wider pb-8 mt-2">({{ $t('hint.closeTheProxy') }})</p>
       </div>
 
       <div class="text-center my-4">

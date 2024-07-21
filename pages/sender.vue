@@ -244,14 +244,17 @@ onUnmounted(() => {
   <div>
     <!-- 错误页面 -->
     <div v-if="status.error.code !== 0">
+      <!-- 当前连接用户太多 -->
       <div v-if="status.error.code === -1" class="text-center">
         <Icon name="material-symbols-light:account-circle-off-outline-rounded" size="100" />
         <p class="text-xl tracking-wider py-8">{{ $t('hint.toManyPeople') }}</p>
       </div>
 
+      <!-- 其他服务异常 -->
       <div v-else class="text-center">
         <Icon name="solar:sad-square-line-duotone" size="100" />
-        <p class="text-xl tracking-wider py-8">{{ $t('hint.serverError') }}</p>
+        <p class="text-xl tracking-wider pt-8">{{ $t('hint.serverError') }}</p>
+        <p class="text-sm tracking-wider pb-8 mt-2">({{ $t('hint.closeTheProxy') }})</p>
       </div>
 
       <div class="text-center py-4">
