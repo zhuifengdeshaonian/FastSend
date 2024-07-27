@@ -330,6 +330,15 @@ onMounted(() => {
   }
   code.value = query.code + ''
 
+  // 超时处理
+  setTimeout(() => {
+    if (status.value.isIniting) {
+      // 30秒后如果还没有连接成功，算超时
+      dispose()
+      status.value.error.code = -10
+    }
+  }, 30e3)
+
   // 初始化信令服务器连接WebSocker
   ws = new WebSocket(location.origin.replace('http', 'ws') + '/api/connect')
   ws.onopen = () => {

@@ -314,7 +314,7 @@ onUnmounted(() => {
           class="text-amber-500 dark:text-amber-600"
         />
         <p v-if="status.warn.code === -1" class="text-xl tracking-wider">
-          {{ $t('hint.noSupportFileAccessAPI') }}
+          {{ $t('hint.noSupportDirTrans2') }}
         </p>
         <p v-else-if="status.warn.code === -10" class="text-xl tracking-wider">
           {{ $t('hint.connectInterrupted') }}

@@ -50,7 +50,7 @@ export default defineI18nConfig(() => ({
         closeTheProxy:
           'If you are currently in a proxy environment, please close the proxy and try again',
         connecting: 'Connecting',
-        noSupportFileAccessAPI: 'The counterparty does not support modern file access APIs',
+        noSupportDirTrans2: "The recipient's browser does not support directory transfer",
         connectInterrupted: 'Connection interrupted, transmission failed',
         areYouSureContinue: 'Are you sure to continue the transmission?',
         inTransit: 'In transit',
@@ -109,7 +109,7 @@ export default defineI18nConfig(() => ({
         serverError: '服务异常，请稍后再试',
         closeTheProxy: '如果当前处于代理环境，请关闭代理重试',
         connecting: '连接中',
-        noSupportFileAccessAPI: '对方不支持现代文件访问API',
+        noSupportDirTrans2: '接收方浏览器不支持目录传输',
         connectInterrupted: '连接中断，传输失败',
         areYouSureContinue: '确定继续传输吗？',
         inTransit: '传输中',
