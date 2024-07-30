@@ -39,6 +39,16 @@ export function isModernFileAPIAvailable() {
 }
 
 /**
+ * 判断浏览器是否支持目录选择
+ * @returns 是否支持目录选择
+ */
+export function supportsDirectorySelection() {
+  var input = document.createElement('input')
+  input.type = 'file'
+  return 'webkitdirectory' in input || 'directory' in input
+}
+
+/**
  * 生成随机字符串
  * @param length 长度
  * @returns

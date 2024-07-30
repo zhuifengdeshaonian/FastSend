@@ -78,8 +78,9 @@ export async function selectDir() {
     const input = document.createElement('input')
     input.style.display = 'none'
     input.type = 'file'
-    input.multiple = true
+    // input.multiple = true
     input.webkitdirectory = true
+    input.directory = true
     input.onchange = () => {
       input.onchange = null
       input.oncancel = null

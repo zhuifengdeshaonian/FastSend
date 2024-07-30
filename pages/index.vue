@@ -4,6 +4,7 @@ const localePath = useLocalePath()
 const router = useRouter()
 const toast = useToast()
 const isModernFileAPISupport = ref(true)
+const isDirSupport = ref(true)
 const receiveCode = ref('')
 
 const { data: transCount } = useFetch('/api/transCount', { method: 'post' })
@@ -109,6 +110,7 @@ watch(
 
 onMounted(() => {
   isModernFileAPISupport.value = isModernFileAPIAvailable()
+  isDirSupport.value = supportsDirectorySelection()
   useFilesInfo('', {})
 })
 </script>
@@ -153,7 +155,7 @@ onMounted(() => {
           rounded
           class="block w-full tracking-wider"
           severity="contrast"
-          :disabled="!isModernFileAPISupport"
+          :disabled="!isDirSupport"
           @click="sendDir"
           ><Icon name="solar:folder-with-files-line-duotone" class="mr-2" />{{
             $t('btn.sendDir')
