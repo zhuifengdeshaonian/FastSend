@@ -161,18 +161,17 @@ onMounted(() => {
             $t('btn.sendDir')
           }}</Button
         >
-        <Button
-          v-if="false"
+        <!-- <Button
           rounded
           class="block w-full tracking-wider"
           severity="contrast"
           :disabled="!isModernFileAPISupport"
           @click="syncDir"
           ><Icon name="solar:refresh-square-broken" class="mr-2" />{{ $t('btn.syncDir') }}</Button
-        >
+        > -->
       </div>
 
-      <div class="flex flex-col items-center space-y-6 mt-8 md:mt-0">
+      <div class="flex flex-col items-center space-y-6 md:space-y-10 mt-8 md:mt-0">
         <h2 class="text-2xl tracking-wider flex flex-row items-center gap-2">
           <Icon name="solar:card-recive-linear" />{{ $t('label.receiveCode') }}
         </h2>
@@ -184,7 +183,7 @@ onMounted(() => {
               type="number"
               v-bind="attrs"
               v-on="events"
-              class="border border-neutral-500/70 rounded bg-neutral-50 dark:bg-zinc-900 focus:outline-none size-12 text-xl text-center no-arrows"
+              class="border border-neutral-500/70 rounded bg-neutral-50 dark:bg-zinc-900 focus:outline-none size-14 text-2xl text-center no-arrows"
             />
           </template>
         </InputOtp>

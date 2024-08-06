@@ -38,6 +38,7 @@ export default defineI18nConfig(() => ({
         sendFile: 'Send file',
         sendDir: 'Send folder',
         syncDir: 'Folder synchronization',
+        selectDir: 'Select folder',
         toHome: 'Back to home',
         terminate: 'Terminate',
         buyMeCoffee: 'Buy me coffee'
@@ -98,6 +99,7 @@ export default defineI18nConfig(() => ({
         sendFile: '发送文件',
         sendDir: '发送目录',
         syncDir: '目录同步',
+        selectDir: '选择目录',
         toHome: '回首页',
         terminate: '终止',
         buyMeCoffee: '请我喝咖啡'

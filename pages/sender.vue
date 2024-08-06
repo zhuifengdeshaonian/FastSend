@@ -283,6 +283,7 @@ onUnmounted(() => {
         </p>
       </div>
 
+      <!-- 二维码和复制链接按钮 -->
       <div class="flex flex-col items-center justify-center gap-4">
         <canvas ref="qrcodeElm" class="size-52"></canvas>
         <Button size="small" severity="contrast" @click="copyLink" class="tracking-wider"

@@ -44,6 +44,11 @@ const status = ref({
     msg: ''
   }
 })
+const syncDirStatus = ref({
+  folderName: '',
+  isWaitingSelectDir: true,
+  isDiffing: true
+})
 
 let calcSpeedJobId: any
 let ws: WebSocket | null
@@ -51,6 +56,7 @@ let pdc: PeerDataChannel | null
 let saveFileFH: FileSystemFileHandle | undefined
 let curFileWriter: FileSystemWritableFileStream | undefined
 let rootDirDH: FileSystemDirectoryHandle | undefined
+let syncTargetDH: FileSystemDirectoryHandle | undefined
 let reqFileResolveFn: () => void | undefined
 let reqFileRejecteFn: () => void | undefined
 
@@ -150,13 +156,23 @@ async function handleObjData(obj: any) {
       // 传输单个文件
       initCurFile()
       totalFileSize.value = curFile.value.size
-    } else if (!isModernFileAPISupport.value) {
-      // 传输目录，但是不支持现代文件访问API，直接报错
-      status.value.warn.code = -1
-      status.value.warn.msg = '不支持目录传输'
-      // 告知对方情况
-      await pdc?.sendData(JSON.stringify({ type: 'err', data: -1 }))
-      dispose()
+    } else {
+      if (!isModernFileAPISupport.value) {
+        // 传输目录，但是不支持现代文件访问API，直接报错
+        status.value.warn.code = -1
+        status.value.warn.msg = '不支持目录传输'
+        // 告知对方情况
+        await pdc?.sendData(JSON.stringify({ type: 'err', data: -1 }))
+        dispose()
+      } else if (peerFilesInfo.value.type === 'syncDir') {
+        // 目录同步
+        const keys = Object.keys(peerFilesInfo.value.fileMap)
+        if (keys.length > 0) {
+          syncDirStatus.value.folderName = peerFilesInfo.value.fileMap[keys[0]].paths[0]
+        } else {
+          syncDirStatus.value.folderName = 'Unknown'
+        }
+      }
     }
     status.value.isWaitingPeerConfirm = false
   } else if (obj.type === 'err') {
@@ -238,6 +254,25 @@ async function requestFile(key: string) {
   })
 }
 
+// 选择要接收同步的目录
+function selectSyncDir() {
+  showDirectoryPicker()
+    .then((dh: FileSystemDirectoryHandle) => {
+      syncDirStatus.value.isWaitingSelectDir = false
+      syncTargetDH = dh
+      return dealFilesFromHandler(dh)
+    })
+    .then((val: any) => {
+      syncDirStatus.value.isDiffing = true
+
+      console.log(val)
+      console.log(peerFilesInfo.value)
+    })
+    .catch((e: any) => {
+      console.warn(e)
+    })
+}
+
 // 开始接收
 async function doReceive() {
   if (status.value.isReceiving) {
@@ -245,7 +280,7 @@ async function doReceive() {
   }
   status.value.isReceiving = true
 
-  if (peerFilesInfo.value.type !== 'transFile') {
+  if (peerFilesInfo.value.type === 'transDir') {
     // 如果传输目录，则至少要选择一个文件
     waitReceiveFileList.value = Object.keys(selectedKeys.value).filter((n) => !/\/$/.test(n))
     if (waitReceiveFileList.value.length === 0) {
@@ -257,6 +292,14 @@ async function doReceive() {
     waitReceiveFileList.value.forEach((name) => {
       totalFileSize.value += peerFilesInfo.value.fileMap[name]?.size
     })
+  } else if (peerFilesInfo.value.type === 'syncDir') {
+    // 目录同步
+    if (syncDirStatus.value.isDiffing) {
+      toast.add({ severity: 'warn', summary: 'Warn', detail: '请至少选择一个文件', life: 3e3 })
+      status.value.isReceiving = false
+      return
+    }
+    // todo
   }
   status.value.isLock = true
 
@@ -299,6 +342,8 @@ async function doReceive() {
         curFileWriter = await curFH?.createWritable()
         await requestFile(key)
       }
+    } else if (peerFilesInfo.value.type === 'syncDir') {
+      console.log('do sync dir')
     }
 
     // 传输完成，告知对方
@@ -335,7 +380,9 @@ onMounted(() => {
     if (status.value.isIniting) {
       // 30秒后如果还没有连接成功，算超时
       dispose()
-      status.value.error.code = -10
+      if (status.value.error.code === 0) {
+        status.value.error.code = -10
+      }
     }
   }, 30e3)
 
@@ -434,8 +481,8 @@ onUnmounted(() => {
       v-else-if="status.isWaitingPeerConfirm"
       class="flex flex-col gap-4 items-center justify-center py-20"
     >
-      <div class="loader"></div>
-      <p class="text-xs tracking-wide">{{ $t('hint.waitingForConfirm') }}</p>
+      <div class="loader2"></div>
+      <p class="text-sm tracking-wide mt-2">{{ $t('hint.waitingForConfirm') }}</p>
     </div>
 
     <!-- 连接成功页面 -->
@@ -480,11 +527,34 @@ onUnmounted(() => {
           </div>
           <!-- 目录 -->
           <FilesTree
-            v-else
+            v-else-if="peerFilesInfo.type === 'transDir'"
             :file-map="peerFilesInfo.fileMap"
             :disabled="status.isLock"
             v-model:selected-key="selectedKeys"
           />
+          <!-- 同步目录 -->
+          <div v-else-if="peerFilesInfo.type === 'syncDir'">
+            <div v-if="syncDirStatus.isWaitingSelectDir">
+              <div class="flex flex-col items-center my-8">
+                <Icon name="solar:folder-with-files-line-duotone" size="64" />
+                <p class="text-lg mt-2">{{ syncDirStatus.folderName }}</p>
+                <!-- <p class="text-xs mt-1 text-gray-600 dark:text-gray-500">
+                  {{ humanFileSize(curFile.size) }}
+                </p> -->
+              </div>
+              <p class="text-xs my-2"><span class="text-red-500">*</span>请选择要接收同步的目录</p>
+              <Button
+                outlined
+                rounded
+                severity="contrast"
+                class="w-full tracking-wider"
+                @click="selectSyncDir"
+                ><Icon name="solar:folder-with-files-line-duotone" class="mr-2" />{{
+                  $t('btn.selectDir')
+                }}</Button
+              >
+            </div>
+          </div>
         </div>
       </div>
 
@@ -525,7 +595,11 @@ onUnmounted(() => {
             rounded
             severity="contrast"
             class="w-full tracking-wider"
-            :disabled="!status.isConnectPeer || status.isReceiving"
+            :disabled="
+              !status.isConnectPeer ||
+              status.isReceiving ||
+              (peerFilesInfo.type === 'syncDir' && syncDirStatus.isDiffing)
+            "
             @click="doReceive"
             ><Icon name="solar:archive-down-minimlistic-line-duotone" class="mr-2" />{{
               $t('btn.receive')
@@ -657,6 +731,35 @@ onUnmounted(() => {
       0 50%,
       50% 50%,
       100% 50%;
+  }
+}
+
+.loader2 {
+  width: 64px;
+  aspect-ratio: 1;
+  display: grid;
+  border: 4px solid #0000;
+  border-radius: 50%;
+  /* border-right-color: #25b09b; */
+  border-right-color: currentColor;
+  animation: l15 1s infinite linear;
+}
+.loader2::before,
+.loader2::after {
+  content: '';
+  grid-area: 1/1;
+  margin: 2px;
+  border: inherit;
+  border-radius: 50%;
+  animation: l15 2s infinite;
+}
+.loader2::after {
+  margin: 8px;
+  animation-duration: 3s;
+}
+@keyframes l15 {
+  100% {
+    transform: rotate(1turn);
   }
 }
 </style>

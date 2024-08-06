@@ -44,6 +44,7 @@ function disposePeer(peer: any) {
   }
 }
 
+// 心跳检测，避免掉线
 function heartbeat(peer: any) {
   peer.send(JSON.stringify({ type: 'ping' }))
   if (peer.readyState === 1) {
