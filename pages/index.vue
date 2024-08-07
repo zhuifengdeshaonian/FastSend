@@ -171,7 +171,7 @@ onMounted(() => {
         > -->
       </div>
 
-      <div class="flex flex-col items-center space-y-6 md:space-y-10 mt-8 md:mt-0">
+      <div class="flex flex-col items-center space-y-6 md:space-y-12 mt-8 md:mt-0">
         <h2 class="text-2xl tracking-wider flex flex-row items-center gap-2">
           <Icon name="solar:card-recive-linear" />{{ $t('label.receiveCode') }}
         </h2>

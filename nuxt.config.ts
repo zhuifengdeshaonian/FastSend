@@ -96,6 +96,11 @@ export default defineNuxtConfig({
           type: 'image/webp',
           purpose: 'any'
         }
+      ],
+
+      screenshots: [
+        { src: '/ogImg.webp', sizes: '1280x720', type: 'image/webp', form_factor: 'wide' },
+        { src: '/mobile.webp', sizes: '990x1370', type: 'image/webp', form_factor: 'narrow' }
       ]
     }
   },

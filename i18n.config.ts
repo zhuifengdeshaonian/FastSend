@@ -60,7 +60,8 @@ export default defineI18nConfig(() => ({
         refusesToTransmit: 'The other party refuses to transmit',
         waitingForConfirm: 'Waiting for confirmation from the other party',
         noSupportDirTrans: 'The current browser does not support directory transfer',
-        connectTimeout: 'Connection timeout'
+        connectTimeout: 'Connection timeout',
+        hashCheckFail: 'File hash checksum failure!'
       }
     },
     zh: {
@@ -120,7 +121,8 @@ export default defineI18nConfig(() => ({
         refusesToTransmit: '对方拒绝传输',
         waitingForConfirm: '等待对方确认',
         noSupportDirTrans: '当前浏览器不支持目录传输',
-        connectTimeout: '连接超时'
+        connectTimeout: '连接超时',
+        hashCheckFail: '文件哈希校验失败'
       }
     }
   }

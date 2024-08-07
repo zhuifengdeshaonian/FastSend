@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 useSeoMeta({
   ogImage: 'https://fastsend.ing/ogImg.webp',
   twitterCard: 'summary_large_image',
@@ -9,7 +9,13 @@ useSeoMeta({
   twitterCreator: '@ShouChen_'
 })
 
+const deferredPrompt = useState('deferredPrompt')
+
 onMounted(() => {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    deferredPrompt.value = e
+    // console.log(e)
+  })
   useFullScreenLoader(false)
 })
 </script>
@@ -23,4 +29,5 @@ onMounted(() => {
   <NuxtPage />
   <AppFooter />
   <ScrollTop />
+  <InstallPWA />
 </template>

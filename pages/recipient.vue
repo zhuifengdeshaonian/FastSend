@@ -18,6 +18,7 @@ const totalFileSize = ref(0)
 const totalTransmittedBytes = ref(0)
 const startTime = ref(0)
 const totalSpeed = ref(0)
+const hasher = CryptoJs.algo.MD5.create()
 const curFile = ref<any>({
   name: '',
   size: 0,
@@ -93,30 +94,21 @@ function downloadFile() {
 async function handleBufferData(buf: ArrayBuffer) {
   curFile.value.transmittedBytes += buf.byteLength
   totalTransmittedBytes.value += buf.byteLength
+  hasher.update(CryptoJs.lib.WordArray.create(buf))
   if (isModernFileAPISupport.value) {
     // 支持现代文件访问API，直接写到文件
     await curFileWriter?.write(buf)
     if (curFile.value.transmittedBytes === curFile.value.size) {
       // 该文件传输完毕
       await curFileWriter?.close()
-      if (reqFileResolveFn) {
-        reqFileResolveFn()
-      }
     }
   } else {
     // 不支持现代文件访问，放到内存中
     curFile.value.chunks.push(buf)
-    if (curFile.value.transmittedBytes === curFile.value.size) {
-      // 文件传输完毕
-      if (reqFileResolveFn) {
-        reqFileResolveFn()
-      }
-      // 触发下载
-      downloadFile()
-    }
   }
 }
 
+// 初始化当前文件状态
 function initCurFile(key?: string) {
   const fm = peerFilesInfo.value.fileMap
   let fileName
@@ -175,6 +167,49 @@ async function handleObjData(obj: any) {
       }
     }
     status.value.isWaitingPeerConfirm = false
+  } else if (obj.type === 'hash') {
+    // 收到文件HASH
+    const hash = hasher.finalize().toString(CryptoJs.enc.Base64)
+    if (hash !== obj.data) {
+      // Hash匹配失败
+      console.error(
+        'Hash check failure.',
+        curFile.value.name,
+        'send:',
+        obj.data,
+        'receive:',
+        CryptoJs.enc.Base64.parse(hash).toString(CryptoJs.enc.Hex)
+      )
+      status.value.warn.code = -3
+      toast.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: t('hint.hashCheckFail'),
+        life: 5e3
+      })
+      if (saveFileFH) {
+        // 删除传输失败的文件
+        saveFileFH.remove()
+      }
+      dispose()
+      return
+    } else {
+      console.log(
+        'Hash check successful.',
+        curFile.value.name,
+        CryptoJs.enc.Base64.parse(hash).toString(CryptoJs.enc.Hex)
+      )
+    }
+
+    if (reqFileResolveFn) {
+      // 文件传输完毕
+      reqFileResolveFn()
+    }
+
+    if (!isModernFileAPISupport.value) {
+      // 如果不支持文件访问API，则直接触发下载
+      downloadFile()
+    }
   } else if (obj.type === 'err') {
     console.warn(obj.data)
     if (obj.data === 403) {
@@ -250,6 +285,7 @@ async function requestFile(key: string) {
   return new Promise<void>((resolve, reject) => {
     reqFileResolveFn = resolve
     reqFileRejecteFn = reject
+    hasher.reset()
     pdc?.sendData(JSON.stringify({ type: 'reqFile', data: key }))
   })
 }
@@ -328,15 +364,15 @@ async function doReceive() {
       for (let i = 0; i < waitReceiveFileList.value.length; i++) {
         const key = waitReceiveFileList.value[i]
         const paths = key.split('/')
-        console.log(paths)
+        // console.log(paths)
 
         initCurFile(key)
         let curFolder = rootDirDH
         for (let j = 0; j < paths.length - 1; j++) {
-          console.log(curFolder)
+          // console.log(curFolder)
           curFolder = await curFolder?.getDirectoryHandle(paths[j], { create: true })
         }
-        console.log(curFolder)
+        // console.log(curFolder)
 
         const curFH = await curFolder?.getFileHandle(paths[paths.length - 1], { create: true })
         curFileWriter = await curFH?.createWritable()
@@ -361,7 +397,7 @@ async function doReceive() {
   } catch (e) {
     console.warn(e)
     clearInterval(calcSpeedJobId)
-    toast.add({ severity: 'error', summary: 'Error', detail: e })
+    toast.add({ severity: 'error', summary: 'Error', detail: e, life: 5e3 })
     status.value.isLock = status.value.isReceiving = false
   }
 }
@@ -605,14 +641,17 @@ onUnmounted(() => {
               $t('btn.receive')
             }}</Button
           >
-          <Button
-            v-if="status.isReceiving"
-            rounded
-            outlined
-            severity="danger"
-            class="w-full tracking-wider"
-            >{{ $t('btn.terminate') }}</Button
-          >
+          <!-- 终止传输 -->
+          <NuxtLink :to="localePath('/')">
+            <Button
+              v-if="status.isReceiving"
+              rounded
+              outlined
+              severity="danger"
+              class="w-full tracking-wider"
+              >{{ $t('btn.terminate') }}</Button
+            >
+          </NuxtLink>
 
           <!-- 传输完成 -->
           <div v-if="status.isDone" class="flex flex-col items-center justify-center py-4 gap-4">
@@ -620,6 +659,7 @@ onUnmounted(() => {
             <p class="text-xl tracking-wider">{{ $t('hint.transCompleted') }}</p>
           </div>
 
+          <!-- 如果不支持现代文件访问，则显示手动下载按钮 -->
           <Button
             v-if="status.isDone && !isModernFileAPISupport"
             rounded
@@ -633,12 +673,14 @@ onUnmounted(() => {
           >
 
           <div v-if="status.isDone" class="py-6">
+            <!-- buy me coffee -->
             <NuxtLink to="https://www.buymeacoffee.com/shouchen" target="_blank">
               <Button rounded outlined severity="contrast" class="w-full tracking-wider"
                 ><IconCoffee class="size-[1.125rem] mr-2" />{{ $t('btn.buyMeCoffee') }}</Button
               >
             </NuxtLink>
 
+            <!-- 回主页 -->
             <NuxtLink :to="localePath('/')">
               <Button rounded severity="contrast" class="w-full tracking-wider block mt-6"
                 ><Icon name="solar:home-2-linear" class="mr-2" />{{ $t('btn.toHome') }}</Button
@@ -661,6 +703,10 @@ onUnmounted(() => {
           <!-- 连接异常中断 -->
           <div v-else-if="status.warn.code === -2">
             <p class="text-xl tracking-wider">{{ $t('hint.connectInterrupted') }}</p>
+          </div>
+          <!-- 文件哈希校验失败 -->
+          <div v-else-if="status.warn.code === -3">
+            <p class="text-xl tracking-wider">{{ $t('hint.hashCheckFail') }}</p>
           </div>
 
           <div class="text-center py-4">

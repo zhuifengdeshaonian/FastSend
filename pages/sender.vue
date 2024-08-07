@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CryptoJs from 'crypto-js'
 import { toCanvas } from 'qrcode'
 import { PeerDataChannel } from '~/utils/PeerDataChannel'
 
@@ -11,6 +12,7 @@ const peerUserInfo = ref({ nickname: 'unknown', avatarURL: '' })
 const filesInfo = useFilesInfo()
 const code = ref('')
 const qrcodeElm = ref()
+const hasher = CryptoJs.algo.MD5.create()
 const curFile = ref<any>({
   name: '',
   size: 0,
@@ -60,6 +62,7 @@ async function confirmUser(isTrust: boolean) {
   await pdc?.sendData(JSON.stringify({ type: 'files', data: filesInfo.value }))
 }
 
+// 处理JSON对象
 async function handleObjData(obj: any) {
   // console.log(obj)
   if (obj.type === 'user') {
@@ -68,6 +71,7 @@ async function handleObjData(obj: any) {
     status.value.isWaitingConnect = false
   } else if (obj.type === 'reqFile') {
     // 请求文件
+    hasher.reset()
     const fileDetail = filesInfo.value.fileMap[obj.data]
     const file = fileDetail?.file
     const name = fileDetail?.paths[fileDetail?.paths?.length - 1] + ''
@@ -93,8 +97,11 @@ async function handleObjData(obj: any) {
       const ab = await file.slice(i * sliceSize, (i + 1) * sliceSize).arrayBuffer()
 
       if (ab.byteLength > 0) {
-        // todo 计算哈希
+        // 计算哈希
+        hasher.update(CryptoJs.lib.WordArray.create(ab))
+        // 发送数据
         await pdc?.sendData(ab)
+        // 更新状态
         curFile.value.lastBytes = curFile.value.transmittedBytes
         curFile.value.transmittedBytes += ab.byteLength
         const nowTime = new Date().getTime()
@@ -103,6 +110,9 @@ async function handleObjData(obj: any) {
         curFile.value.startTime = nowTime
       }
     }
+    // 发送Hash值
+    const hash = hasher.finalize().toString(CryptoJs.enc.Base64)
+    await pdc?.sendData(JSON.stringify({ type: 'hash', data: hash }))
   } else if (obj.type === 'done') {
     // 传输完成
     status.value.isDone = true

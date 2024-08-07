@@ -181,3 +181,13 @@ export async function copyToClipboard(content: string | ImageData): Promise<void
     console.warn(error)
   }
 }
+
+/**
+ * 判断当前页面是否在独立窗口打开（PWA）
+ */
+export function isStandalone(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  return window.matchMedia('(display-mode: standalone)').matches
+}
