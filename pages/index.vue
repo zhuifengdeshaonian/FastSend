@@ -7,7 +7,16 @@ const isModernFileAPISupport = ref(true)
 const isDirSupport = ref(true)
 const receiveCode = ref('')
 
-const { data: transCount } = useFetch('/api/transCount', { method: 'post' })
+const { data: transCount } = useFetch('/api/transCount', {
+  method: 'post',
+  onResponseError() {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: t('hint.serviceUnavailable')
+    })
+  }
+})
 
 useSeoMeta({
   title: t('home')

@@ -17,6 +17,10 @@ onMounted(() => {
     // console.log(e)
   })
   useFullScreenLoader(false)
+
+  fetch('/banner.txt')
+    .then((res) => res.text())
+    .then(console.log)
 })
 </script>
 

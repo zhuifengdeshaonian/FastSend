@@ -72,17 +72,22 @@ export default defineNuxtConfig({
   },
 
   pwa: {
-    strategies: 'generateSW',
+    strategies: 'injectManifest',
+    srcDir: 'public',
+    filename: 'sw.js',
     registerType: 'autoUpdate',
 
-    workbox: {
-      runtimeCaching: [
-        {
-          urlPattern: () => true,
-          handler: 'NetworkOnly'
-        }
-      ]
-    },
+    // workbox: {
+    //   runtimeCaching: [
+    //     {
+    //       urlPattern: /.*/,
+    //       handler: 'StaleWhileRevalidate',
+    //       options: {
+    //         cacheName: 'main'
+    //       }
+    //     }
+    //   ]
+    // },
 
     manifest: {
       name: 'FastSend',

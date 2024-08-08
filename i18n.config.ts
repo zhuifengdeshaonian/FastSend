@@ -61,7 +61,8 @@ export default defineI18nConfig(() => ({
         waitingForConfirm: 'Waiting for confirmation from the other party',
         noSupportDirTrans: 'The current browser does not support directory transfer',
         connectTimeout: 'Connection timeout',
-        hashCheckFail: 'File hash checksum failure!'
+        hashCheckFail: 'File hash checksum failure!',
+        serviceUnavailable: 'Service unavailable'
       }
     },
     zh: {
@@ -122,7 +123,8 @@ export default defineI18nConfig(() => ({
         waitingForConfirm: '等待对方确认',
         noSupportDirTrans: '当前浏览器不支持目录传输',
         connectTimeout: '连接超时',
-        hashCheckFail: '文件哈希校验失败'
+        hashCheckFail: '文件哈希校验失败',
+        serviceUnavailable: '服务不可用'
       }
     }
   }
