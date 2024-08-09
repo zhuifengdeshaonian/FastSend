@@ -5,7 +5,8 @@ const colorMode = useColorMode()
 const isBgBlur = ref(false)
 const userInfo = useUserInfo()
 const tmpNickname = ref('')
-const op = ref()
+const userInfoPanel = ref()
+const isConfirmDefault = useConfirmDefault()
 
 // 暗色模式切换
 function switchColorMode() {
@@ -25,10 +26,15 @@ function switchI18n() {
   }
 }
 
+// 是否开启发送方自动确认
+function isConfirmDefaultSwitch() {
+  localStorage.setItem('isConfirmDefault', isConfirmDefault.value + '')
+}
+
 // 展示昵称编辑弹框
 function showNicknameEditor(event: Event) {
   tmpNickname.value = userInfo.value.nickname
-  op.value.toggle(event)
+  userInfoPanel.value.toggle(event)
 }
 
 // 编辑昵称
@@ -38,7 +44,7 @@ function editNickname() {
     userInfo.value.nickname = 'User_' + genRandomString(6)
   }
   localStorage.setItem('nickname', userInfo.value.nickname)
-  op.value.hide()
+  userInfoPanel.value.hide()
 }
 
 // 编辑头像
@@ -90,6 +96,12 @@ onMounted(() => {
   } else {
     userInfo.value.avatarURL = avatarURL
   }
+
+  // 初始化配置
+  const isConfirmDefaultTmp = localStorage.getItem('isConfirmDefault')
+  if (isConfirmDefaultTmp) {
+    isConfirmDefault.value = true
+  }
 })
 </script>
 
@@ -119,19 +131,20 @@ onMounted(() => {
     </div>
 
     <!-- 用户信息弹出框 -->
-    <OverlayPanel ref="op">
+    <Popover ref="userInfoPanel">
       <div class="relative">
-        <Button
-          severity="secondary"
-          text
-          @click="clearUserInfo"
-          size="small"
-          style="position: absolute"
-          class="py-3 top-0 right-0 z-10"
-          aria-label="Language"
-        >
-          <Icon name="material-symbols:sync-rounded" class="text-rose-500 dark:text-rose-600" />
-        </Button>
+        <div class="absolute top-0 right-0 z-10">
+          <Button
+            severity="secondary"
+            text
+            @click="clearUserInfo"
+            size="small"
+            class="py-3"
+            aria-label="Language"
+          >
+            <Icon name="material-symbols:sync-rounded" class="text-rose-500 dark:text-rose-600" />
+          </Button>
+        </div>
 
         <div class="relative flex flex-col items-center gap-4">
           <Avatar
@@ -154,8 +167,15 @@ onMounted(() => {
             /></Button>
           </InputGroup>
         </div>
+
+        <Divider />
+
+        <div class="flex flex-row items-center justify-between">
+          <p class="text-sm">{{ $t('label.autoConfirmBySender') }}</p>
+          <ToggleSwitch v-model="isConfirmDefault" @change="isConfirmDefaultSwitch" />
+        </div>
       </div>
-    </OverlayPanel>
+    </Popover>
 
     <div class="contents">
       <NuxtLink to="https://www.buymeacoffee.com/shouchen" target="_blank" class="ml-2 md:ml-4">

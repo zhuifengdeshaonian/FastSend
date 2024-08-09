@@ -56,7 +56,6 @@ function syncDir() {
       // console.log(fileMap)
       useFilesInfo('syncDir', fileMap)
       router.push(localePath('/sender'))
-      useFullScreenLoader(false)
     })
     .catch((e) => {
       console.warn(e)
@@ -79,7 +78,6 @@ function sendDir() {
       }
       useFilesInfo('transDir', fileMap)
       router.push(localePath('/sender'))
-      useFullScreenLoader(false)
     })
     .catch((e) => {
       console.warn(e)
@@ -91,6 +89,7 @@ function sendDir() {
 function sendFile() {
   selectFile()
     .then((file) => {
+      useFullScreenLoader(true)
       useFilesInfo('transFile', dealFilesFormFile(file))
       router.push(localePath('/sender'))
     })

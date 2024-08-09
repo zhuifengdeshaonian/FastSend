@@ -21,7 +21,8 @@ export default defineI18nConfig(() => ({
         quickStart: 'Qucik Start',
         transmitted: 'Transmitted',
         times: 'times',
-        totalProgress: 'Total progress'
+        totalProgress: 'Total progress',
+        autoConfirmBySender: 'Automatic confirmation by sender'
       },
       btn: {
         submit: 'Submit',
@@ -84,7 +85,8 @@ export default defineI18nConfig(() => ({
         quickStart: '快速开始',
         transmitted: '已传输',
         times: '次',
-        totalProgress: '总进度'
+        totalProgress: '总进度',
+        autoConfirmBySender: '发送方自动确认'
       },
       btn: {
         submit: '提交',

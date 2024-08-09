@@ -10,6 +10,7 @@ const toast = useToast()
 const userInfo = useUserInfo()
 const peerUserInfo = ref({ nickname: 'unknown', avatarURL: '' })
 const filesInfo = useFilesInfo()
+const isConfirmDefault = useConfirmDefault()
 const code = ref('')
 const qrcodeElm = ref()
 const hasher = CryptoJs.algo.MD5.create()
@@ -69,6 +70,10 @@ async function handleObjData(obj: any) {
     // 用户信息
     peerUserInfo.value = obj.data
     status.value.isWaitingConnect = false
+    if (isConfirmDefault.value) {
+      // 如果开启自动确认，则直接确认
+      confirmUser(true)
+    }
   } else if (obj.type === 'reqFile') {
     // 请求文件
     hasher.reset()
@@ -177,6 +182,7 @@ async function copyLink() {
 }
 
 onMounted(() => {
+  useFullScreenLoader(false)
   if (!filesInfo.value.type) {
     router.replace(localePath('/'))
     return

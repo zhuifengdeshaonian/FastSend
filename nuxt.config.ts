@@ -3,11 +3,12 @@ import path from 'path'
 export default defineNuxtConfig({
   devtools: { enabled: true },
   css: ['~/assets/main.css'],
+
   modules: [
     '@nuxtjs/seo',
     '@nuxtjs/i18n',
     '@vite-pwa/nuxt',
-    'nuxt-primevue',
+    '@primevue/nuxt-module',
     '@nuxtjs/color-mode',
     '@nuxtjs/tailwindcss',
     'nuxt-icon'
@@ -114,5 +115,7 @@ export default defineNuxtConfig({
     experimental: {
       websocket: true
     }
-  }
+  },
+
+  compatibilityDate: '2024-08-09'
 })
