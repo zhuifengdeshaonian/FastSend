@@ -22,7 +22,8 @@ export default defineI18nConfig(() => ({
         transmitted: 'Transmitted',
         times: 'times',
         totalProgress: 'Total progress',
-        autoConfirmBySender: 'Automatic confirmation by sender'
+        autoConfirmBySender: 'Auto confirm by sender',
+        dragHereToSendFile: 'Drag here to send the file'
       },
       btn: {
         submit: 'Submit',
@@ -63,7 +64,8 @@ export default defineI18nConfig(() => ({
         noSupportDirTrans: 'The current browser does not support directory transfer',
         connectTimeout: 'Connection timeout',
         hashCheckFail: 'File hash checksum failure!',
-        serviceUnavailable: 'Service unavailable'
+        serviceUnavailable: 'Service unavailable',
+        noSupportFolderDrag: 'Drag and drop of folders is not supported'
       }
     },
     zh: {
@@ -86,7 +88,8 @@ export default defineI18nConfig(() => ({
         transmitted: '已传输',
         times: '次',
         totalProgress: '总进度',
-        autoConfirmBySender: '发送方自动确认'
+        autoConfirmBySender: '发送方自动确认',
+        dragHereToSendFile: '拖动到此处发送文件'
       },
       btn: {
         submit: '提交',
@@ -126,7 +129,8 @@ export default defineI18nConfig(() => ({
         noSupportDirTrans: '当前浏览器不支持目录传输',
         connectTimeout: '连接超时',
         hashCheckFail: '文件哈希校验失败',
-        serviceUnavailable: '服务不可用'
+        serviceUnavailable: '服务不可用',
+        noSupportFolderDrag: '暂不支持文件夹拖放'
       }
     }
   }

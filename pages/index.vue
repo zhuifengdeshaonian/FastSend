@@ -6,6 +6,8 @@ const toast = useToast()
 const isModernFileAPISupport = ref(true)
 const isDirSupport = ref(true)
 const receiveCode = ref('')
+const isFileDraging = ref(false)
+const fileDragArea = ref()
 
 const { data: transCount } = useFetch('/api/transCount', {
   method: 'post',
@@ -22,6 +24,7 @@ useSeoMeta({
   title: t('home')
 })
 
+// 发起目录同步
 function syncDir() {
   // if (isModernFileAPISupport.value) {
   // showDirectoryPicker()
@@ -65,6 +68,7 @@ function syncDir() {
   // }
 }
 
+// 发送目录
 function sendDir() {
   // 注意：移动端不支持选择目录
   selectDir()
@@ -86,6 +90,7 @@ function sendDir() {
     })
 }
 
+// 发送文件
 function sendFile() {
   selectFile()
     .then((file) => {
@@ -98,6 +103,51 @@ function sendFile() {
       toast.add({ severity: 'error', summary: 'Error', detail: e, life: 5e3 })
       useFullScreenLoader(false)
     })
+}
+
+watch(isFileDraging, (val) => {
+  if (val) {
+    fileDragArea.value.style.display = 'flex'
+    fileDragArea.value.style.opacity = '1'
+  } else {
+    fileDragArea.value.style.opacity = '0'
+    setTimeout(() => {
+      if (fileDragArea.value) {
+        fileDragArea.value.style.display = 'none'
+      }
+    }, 300)
+  }
+})
+
+function fileDragOver(e: Event) {
+  e.preventDefault()
+  isFileDraging.value = true
+}
+
+function fileDrop(e: DragEvent) {
+  e.preventDefault()
+  isFileDraging.value = false
+  // console.log('fileDrop', e)
+
+  if (e.dataTransfer && e.dataTransfer.items.length > 0) {
+    const item = e.dataTransfer.items[0].webkitGetAsEntry()
+    const files = e.dataTransfer.files
+    if (item) {
+      if (item.isFile) {
+        const file = files[0]
+        useFullScreenLoader(true)
+        useFilesInfo('transFile', dealFilesFormFile(file))
+        router.push(localePath('/sender'))
+      } else if (item.isDirectory) {
+        toast.add({
+          severity: 'warn',
+          summary: 'Warn',
+          detail: t('hint.noSupportFolderDrag'),
+          life: 3e3
+        })
+      }
+    }
+  }
 }
 
 watch(
@@ -120,6 +170,24 @@ onMounted(() => {
   isModernFileAPISupport.value = isModernFileAPIAvailable()
   isDirSupport.value = supportsDirectorySelection()
   useFilesInfo('', {})
+
+  window.ondragenter = (e) => {
+    e.preventDefault()
+    isFileDraging.value = true
+  }
+  window.ondragleave = (e: DragEvent) => {
+    e.preventDefault()
+    if (!e.relatedTarget) {
+      isFileDraging.value = false
+    }
+  }
+  window.ondragover = (e) => {
+    e.preventDefault()
+  }
+  window.ondrop = (e) => {
+    e.preventDefault()
+    isFileDraging.value = false
+  }
 })
 </script>
 
@@ -131,7 +199,7 @@ onMounted(() => {
     <div class="py-6 px-8 text-center">
       <h1 class="md:text-6xl text-5xl tracking-wider font-serif">Fast Send</h1>
       <p
-        class="mt-6 leading-6 tracking-widest text-sm md:text-base text-gray-600 dark:text-gray-200"
+        class="mt-4 leading-6 tracking-widest text-sm md:text-base text-gray-600 dark:text-gray-200"
       >
         {{ $t('description') }}
       </p>
@@ -144,8 +212,19 @@ onMounted(() => {
       <span class="text-red-500">*</span>{{ $t('hint.noModernFileAPIWarn') }}
     </p>
 
-    <div class="md:grid md:grid-cols-2 gap-4 my-10 px-4">
-      <div class="flex flex-col items-center space-y-6">
+    <div class="md:grid md:grid-cols-2 gap-4 my-6 px-4">
+      <div class="flex flex-col items-center relative px-4 py-8">
+        <!-- 拖放指示 -->
+        <div
+          ref="fileDragArea"
+          @dragover="fileDragOver"
+          @drop="fileDrop"
+          class="file-drag-area absolute left-0 top-0 right-0 bottom-0 flex-col items-center justify-center rounded-lg bg-white/60 dark:bg-black/60 backdrop-blur-sm border border-dashed border-neutral-500 z-40"
+        >
+          <Icon name="solar:file-send-linear" size="48" />
+          <p class="mt-4">{{ $t('label.dragHereToSendFile') }}</p>
+        </div>
+
         <h2 class="text-2xl tracking-wider flex flex-row items-center gap-2">
           <Icon name="solar:card-send-linear" />{{ $t('label.quickStart') }}
         </h2>
@@ -153,7 +232,7 @@ onMounted(() => {
         <Button
           outlined
           rounded
-          class="block w-full tracking-wider"
+          class="block w-full tracking-wider mt-6"
           severity="contrast"
           @click="sendFile"
           ><Icon name="solar:file-line-duotone" class="mr-2" />{{ $t('btn.sendFile') }}</Button
@@ -161,7 +240,7 @@ onMounted(() => {
         <Button
           outlined
           rounded
-          class="block w-full tracking-wider"
+          class="block w-full tracking-wider mt-6"
           severity="contrast"
           :disabled="!isDirSupport"
           @click="sendDir"
@@ -179,7 +258,9 @@ onMounted(() => {
         > -->
       </div>
 
-      <div class="flex flex-col items-center space-y-6 md:space-y-12 mt-8 md:mt-0">
+      <div
+        class="flex flex-col items-center space-y-6 md:space-y-12 mt-8 md:mt-0 px-4 md:py-8 py-0"
+      >
         <h2 class="text-2xl tracking-wider flex flex-row items-center gap-2">
           <Icon name="solar:card-recive-linear" />{{ $t('label.receiveCode') }}
         </h2>
@@ -205,3 +286,13 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style>
+.file-drag-area {
+  display: none;
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+</style>

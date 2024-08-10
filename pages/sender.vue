@@ -157,7 +157,7 @@ function initPDC() {
     dispose()
   }
   pdc.onConnected = () => {
-    console.log('onConnected')
+    // console.log('onConnected')
     status.value.isConnectPeer = true
     status.value.isWaitingConfirm = true
   }
