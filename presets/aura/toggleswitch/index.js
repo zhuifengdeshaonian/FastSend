@@ -30,7 +30,7 @@ export default {
             'border',
             {
                 'bg-surface-300 dark:bg-surface-800': !(props.modelValue == props.trueValue),
-                'bg-black': props.modelValue == props.trueValue,
+                'bg-black dark:bg-white': props.modelValue == props.trueValue,
                 'before:dark:bg-surface-950': props.modelValue == props.trueValue,
                 'border-transparent': !props.invalid
             },

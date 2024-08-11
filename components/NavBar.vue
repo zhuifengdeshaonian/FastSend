@@ -27,8 +27,8 @@ function switchI18n() {
 }
 
 // 是否开启发送方自动确认
-function isConfirmDefaultSwitch() {
-  localStorage.setItem('isConfirmDefault', isConfirmDefault.value + '')
+function switchConfirmDefault() {
+  localStorage.setItem('isConfirmDefault', JSON.stringify(isConfirmDefault.value))
 }
 
 // 展示昵称编辑弹框
@@ -98,8 +98,7 @@ onMounted(() => {
   }
 
   // 初始化配置
-  const isConfirmDefaultTmp = localStorage.getItem('isConfirmDefault')
-  if (isConfirmDefaultTmp) {
+  if (getValFromLocalStorage('isConfirmDefault', false)) {
     isConfirmDefault.value = true
   }
 })
@@ -172,7 +171,7 @@ onMounted(() => {
 
         <div class="flex flex-row items-center justify-between">
           <p class="text-sm">{{ $t('label.autoConfirmBySender') }}</p>
-          <ToggleSwitch v-model="isConfirmDefault" @change="isConfirmDefaultSwitch" />
+          <ToggleSwitch v-model="isConfirmDefault" @change="switchConfirmDefault" />
         </div>
       </div>
     </Popover>

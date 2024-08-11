@@ -191,3 +191,23 @@ export function isStandalone(): boolean {
   }
   return window.matchMedia('(display-mode: standalone)').matches
 }
+
+/**
+ * 从localStorage读取值，如果未找到并且提供了默认值，则更新localStorage并返回默认值
+ * @param key
+ * @param defVal
+ * @returns
+ */
+export function getValFromLocalStorage<T>(key: string, defVal?: T): T | null {
+  const val = localStorage.getItem(key)
+  if (val) {
+    try {
+      return JSON.parse(val)
+    } catch (e) {}
+  }
+  if (defVal !== undefined) {
+    localStorage.setItem(key, JSON.stringify(defVal))
+    return defVal
+  }
+  return null
+}
