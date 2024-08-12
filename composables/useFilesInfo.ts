@@ -1,7 +1,8 @@
 export default function useFilesInfo(type?: string, fileMap?: any) {
-  const filesInfo = useState<{ type: string; fileMap: any }>('useFilesInfo', () => ({
+  const filesInfo = useState<{ type: string; fileMap: any; root: string }>('useFilesInfo', () => ({
     type: '',
-    fileMap: {}
+    fileMap: {},
+    root: ''
   }))
   if (type) {
     filesInfo.value.type = type

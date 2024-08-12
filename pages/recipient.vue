@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CryptoJs from 'crypto-js'
+import CryptoJS from 'crypto-js'
 import { PeerDataChannel } from '~/utils/PeerDataChannel'
 
 const { t } = useI18n()
@@ -18,7 +18,7 @@ const totalFileSize = ref(0)
 const totalTransmittedBytes = ref(0)
 const startTime = ref(0)
 const totalSpeed = ref(0)
-const hasher = CryptoJs.algo.MD5.create()
+const hasher = CryptoJS.algo.MD5.create()
 const curFile = ref<any>({
   name: '',
   size: 0,
@@ -45,10 +45,16 @@ const status = ref({
     msg: ''
   }
 })
-const syncDirStatus = ref({
+const syncDirStatus = ref<any>({
   folderName: '',
   isWaitingSelectDir: true,
-  isDiffing: true
+  isDiffing: true,
+  fileMapAdd: {},
+  fileMapUpdate: {},
+  fileMapDelete: {},
+  waitAddList: [],
+  waitUpdateList: [],
+  waitDeleteList: []
 })
 
 let calcSpeedJobId: any
@@ -60,6 +66,8 @@ let rootDirDH: FileSystemDirectoryHandle | undefined
 let syncTargetDH: FileSystemDirectoryHandle | undefined
 let reqFileResolveFn: () => void | undefined
 let reqFileRejecteFn: () => void | undefined
+let calcPeerFileHashResolveFn: (hash: string) => void | undefined
+let calcPeerFileHashRejecteFn: () => void | undefined
 
 useSeoMeta({
   title: t('recipient')
@@ -72,6 +80,9 @@ function dispose() {
   clearInterval(calcSpeedJobId)
   if (reqFileRejecteFn) {
     reqFileRejecteFn()
+  }
+  if (calcPeerFileHashRejecteFn) {
+    calcPeerFileHashRejecteFn()
   }
   ws?.close()
   pdc?.dispose()
@@ -94,7 +105,7 @@ function downloadFile() {
 async function handleBufferData(buf: ArrayBuffer) {
   curFile.value.transmittedBytes += buf.byteLength
   totalTransmittedBytes.value += buf.byteLength
-  hasher.update(CryptoJs.lib.WordArray.create(buf))
+  hasher.update(CryptoJS.lib.WordArray.create(buf))
   if (isModernFileAPISupport.value) {
     // 支持现代文件访问API，直接写到文件
     await curFileWriter?.write(buf)
@@ -158,18 +169,13 @@ async function handleObjData(obj: any) {
         dispose()
       } else if (peerFilesInfo.value.type === 'syncDir') {
         // 目录同步
-        const keys = Object.keys(peerFilesInfo.value.fileMap)
-        if (keys.length > 0) {
-          syncDirStatus.value.folderName = peerFilesInfo.value.fileMap[keys[0]].paths[0]
-        } else {
-          syncDirStatus.value.folderName = 'Unknown'
-        }
+        syncDirStatus.value.folderName = peerFilesInfo.value.root
       }
     }
     status.value.isWaitingPeerConfirm = false
-  } else if (obj.type === 'hash') {
+  } else if (obj.type === 'fileDone') {
     // 收到文件HASH
-    const hash = hasher.finalize().toString(CryptoJs.enc.Base64)
+    const hash = hasher.finalize().toString(CryptoJS.enc.Base64)
     if (hash !== obj.data) {
       // Hash匹配失败
       console.error(
@@ -178,7 +184,7 @@ async function handleObjData(obj: any) {
         'send:',
         obj.data,
         'receive:',
-        CryptoJs.enc.Base64.parse(hash).toString(CryptoJs.enc.Hex)
+        CryptoJS.enc.Base64.parse(hash).toString(CryptoJS.enc.Hex)
       )
       status.value.warn.code = -3
       toast.add({
@@ -197,7 +203,7 @@ async function handleObjData(obj: any) {
       console.log(
         'Hash check successful.',
         curFile.value.name,
-        CryptoJs.enc.Base64.parse(hash).toString(CryptoJs.enc.Hex)
+        CryptoJS.enc.Base64.parse(hash).toString(CryptoJS.enc.Hex)
       )
     }
 
@@ -209,6 +215,10 @@ async function handleObjData(obj: any) {
     if (!isModernFileAPISupport.value) {
       // 如果不支持文件访问API，则直接触发下载
       downloadFile()
+    }
+  } else if (obj.type === 'fileHash') {
+    if (calcPeerFileHashResolveFn) {
+      calcPeerFileHashResolveFn(obj.data)
     }
   } else if (obj.type === 'err') {
     console.warn(obj.data)
@@ -290,6 +300,15 @@ async function requestFile(key: string) {
   })
 }
 
+// 计算对面文件哈希
+async function calcPeerFileHash(key: string) {
+  return new Promise<string>((resolve, reject) => {
+    calcPeerFileHashResolveFn = resolve
+    calcPeerFileHashRejecteFn = reject
+    pdc?.sendData(JSON.stringify({ type: 'calcFileHash', data: key }))
+  })
+}
+
 // 选择要接收同步的目录
 function selectSyncDir() {
   showDirectoryPicker()
@@ -298,11 +317,45 @@ function selectSyncDir() {
       syncTargetDH = dh
       return dealFilesFromHandler(dh)
     })
-    .then((val: any) => {
+    .then((val: any) => fileMapRemoveRoot(val))
+    .then(async (localFileMap: any) => {
       syncDirStatus.value.isDiffing = true
+      // 开始对比目录结构
+      for (let k in peerFilesInfo.value.fileMap) {
+        if (k in localFileMap) {
+          console.log(peerFilesInfo.value.fileMap[k]?.size, localFileMap[k]?.size)
 
-      console.log(val)
+          if (peerFilesInfo.value.fileMap[k]?.size === localFileMap[k]?.size) {
+            // 大小相等，根据情况进一步计算哈希
+            const peerHashPromise = calcPeerFileHash(k)
+            const localFileHash = await calcMD5(localFileMap[k].file)
+            const peerFileHash = await peerHashPromise
+            console.log('localFileHash', localFileHash)
+            console.log('peerFileHash', peerFileHash)
+            if (localFileHash === peerFileHash) {
+              localFileMap[k]['isEqual'] = true
+              continue
+            }
+          }
+          // 要更新的
+          syncDirStatus.value.fileMapUpdate[k] = localFileMap[k]
+          localFileMap[k]['isUpdate'] = true
+        } else {
+          // 要新增的
+          syncDirStatus.value.fileMapAdd[k] = peerFilesInfo.value.fileMap[k]
+        }
+      }
+      for (let k in localFileMap) {
+        if (!localFileMap[k]['isUpdate'] && !localFileMap[k]['isEqual']) {
+          // 要删除的
+          syncDirStatus.value.fileMapDelete[k] = localFileMap[k]
+        }
+      }
+      syncDirStatus.value.isDiffing = false
+
+      console.log(localFileMap)
       console.log(peerFilesInfo.value)
+      console.log(syncDirStatus.value)
     })
     .catch((e: any) => {
       console.warn(e)
@@ -330,7 +383,11 @@ async function doReceive() {
     })
   } else if (peerFilesInfo.value.type === 'syncDir') {
     // 目录同步
-    if (syncDirStatus.value.isDiffing) {
+    if (
+      syncDirStatus.value.waitAddList.length === 0 ||
+      syncDirStatus.value.waitUpdateList.length === 0 ||
+      syncDirStatus.value.waitDeleteList.length === 0
+    ) {
       toast.add({ severity: 'warn', summary: 'Warn', detail: '请至少选择一个文件', life: 3e3 })
       status.value.isReceiving = false
       return
@@ -570,6 +627,7 @@ onUnmounted(() => {
           />
           <!-- 同步目录 -->
           <div v-else-if="peerFilesInfo.type === 'syncDir'">
+            <!-- 选择要同步的目录 -->
             <div v-if="syncDirStatus.isWaitingSelectDir">
               <div class="flex flex-col items-center my-8">
                 <Icon name="solar:folder-with-files-line-duotone" size="64" />
@@ -589,6 +647,33 @@ onUnmounted(() => {
                   $t('btn.selectDir')
                 }}</Button
               >
+            </div>
+            <!-- 对比目录结构 -->
+            <div v-else-if="syncDirStatus.isDiffing" class="flex flex-col items-center mt-12">
+              <!-- <Icon name="material-symbols-light:unknown-document-outline-rounded" size="64" /> -->
+              <div class="loader2"></div>
+              <p class="mt-8">对比结构中</p>
+            </div>
+            <!-- 选择要新增、更新、删除的文件列表 -->
+            <div v-else>
+              <p>请选择要新增的文件</p>
+              <FilesTree
+                :file-map="syncDirStatus.fileMapAdd"
+                :disabled="status.isLock"
+                v-model:selected-key="syncDirStatus.waitAddList"
+              />
+              <p class="mt-2">请选择要更新的文件</p>
+              <FilesTree
+                :file-map="syncDirStatus.fileMapUpdate"
+                :disabled="status.isLock"
+                v-model:selected-key="syncDirStatus.waitUpdateList"
+              />
+              <p class="mt-2">请选择要删除的文件</p>
+              <FilesTree
+                :file-map="syncDirStatus.fileMapDelete"
+                :disabled="status.isLock"
+                v-model:selected-key="syncDirStatus.waitDeleteList"
+              />
             </div>
           </div>
         </div>

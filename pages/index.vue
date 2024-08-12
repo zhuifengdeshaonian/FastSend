@@ -250,7 +250,7 @@ onMounted(() => {
         >
         <!-- <Button
           rounded
-          class="block w-full tracking-wider"
+          class="block w-full tracking-wider mt-6"
           severity="contrast"
           :disabled="!isModernFileAPISupport"
           @click="syncDir"

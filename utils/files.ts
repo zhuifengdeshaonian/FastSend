@@ -25,7 +25,7 @@ async function dealFilesFromHandlerLoop(
  */
 export async function dealFilesFromHandler(fh: FileSystemDirectoryHandle) {
   const result = {}
-  await dealFilesFromHandlerLoop(fh, [], result)
+  await dealFilesFromHandlerLoop(fh, [fh.name], result)
   return result
 }
 
@@ -130,4 +130,18 @@ export async function selectFile(accept?: string) {
     }
     input.click()
   })
+}
+
+/**
+ * 扁平文件树去根
+ * @param fileMap
+ */
+export function fileMapRemoveRoot(fileMap: any) {
+  const res: any = {}
+  for (let k in fileMap) {
+    const fileInfo = fileMap[k]
+    fileInfo.paths.shift()
+    res[k.replace(/.*?\//, '')] = fileInfo
+  }
+  return res
 }

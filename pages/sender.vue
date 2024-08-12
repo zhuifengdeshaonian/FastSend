@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CryptoJs from 'crypto-js'
+import CryptoJS from 'crypto-js'
 import { toCanvas } from 'qrcode'
 import { PeerDataChannel } from '~/utils/PeerDataChannel'
 
@@ -13,7 +13,7 @@ const filesInfo = useFilesInfo()
 const isConfirmDefault = useConfirmDefault()
 const code = ref('')
 const qrcodeElm = ref()
-const hasher = CryptoJs.algo.MD5.create()
+const hasher = CryptoJS.algo.MD5.create()
 const curFile = ref<any>({
   name: '',
   size: 0,
@@ -60,6 +60,15 @@ async function confirmUser(isTrust: boolean) {
   }
   status.value.isWaitingConfirm = false
   await pdc?.sendData(JSON.stringify({ type: 'user', data: userInfo.value }))
+  if (filesInfo.value.type === 'syncDir') {
+    const keys = Object.keys(filesInfo.value.fileMap)
+    if (keys.length > 0) {
+      filesInfo.value.root = filesInfo.value.fileMap[keys[0]].paths[0]
+    } else {
+      filesInfo.value.root = 'Unknown'
+    }
+    filesInfo.value.fileMap = fileMapRemoveRoot(filesInfo.value.fileMap)
+  }
   await pdc?.sendData(JSON.stringify({ type: 'files', data: filesInfo.value }))
 }
 
@@ -103,7 +112,7 @@ async function handleObjData(obj: any) {
 
       if (ab.byteLength > 0) {
         // 计算哈希
-        hasher.update(CryptoJs.lib.WordArray.create(ab))
+        hasher.update(CryptoJS.lib.WordArray.create(ab))
         // 发送数据
         await pdc?.sendData(ab)
         // 更新状态
@@ -116,8 +125,21 @@ async function handleObjData(obj: any) {
       }
     }
     // 发送Hash值
-    const hash = hasher.finalize().toString(CryptoJs.enc.Base64)
-    await pdc?.sendData(JSON.stringify({ type: 'hash', data: hash }))
+    const hash = hasher.finalize().toString(CryptoJS.enc.Base64)
+    await pdc?.sendData(JSON.stringify({ type: 'fileDone', data: hash }))
+  } else if (obj.type === 'calcFileHash') {
+    // 计算指定文件哈希
+    hasher.reset()
+    const fileDetail = filesInfo.value.fileMap[obj.data]
+    const file = fileDetail?.file
+    if (!file) {
+      // 找不到对应的文件
+      await pdc?.sendData(JSON.stringify({ type: 'err', data: 404 }))
+      return
+    }
+    // 计算并发送哈希
+    const hash = await calcMD5(file)
+    await pdc?.sendData(JSON.stringify({ type: 'fileHash', data: hash }))
   } else if (obj.type === 'done') {
     // 传输完成
     status.value.isDone = true
