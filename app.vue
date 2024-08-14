@@ -34,4 +34,5 @@ onMounted(() => {
   <AppFooter />
   <ScrollTop />
   <InstallPWA />
+  <DocPanel />
 </template>

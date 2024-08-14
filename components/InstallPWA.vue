@@ -12,7 +12,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="fixed right-5 bottom-20 z-40" v-if="!isPWA && deferredPrompt">
+  <div class="fixed right-5 bottom-36 z-40" v-if="!isPWA && deferredPrompt">
     <Button text raised rounded size="large" aria-label="Install PWA" @click="installPWA">
       <Icon name="ic:outline-install-mobile" class="text-black/90 dark:text-white/90" />
     </Button>
