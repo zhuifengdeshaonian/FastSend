@@ -119,7 +119,7 @@ export function selectAvatar(cb: (url: string) => void) {
  *
  * @return 格式化后的字符串
  */
-export function humanFileSize(bytes: number, decimals = 2) {
+export function humanFileSize(bytes: number, decimals = 2): string {
   if (!bytes) return '0B'
   var k = 1024
   var dm = decimals || 2

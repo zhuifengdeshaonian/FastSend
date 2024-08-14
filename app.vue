@@ -6,7 +6,7 @@ useSeoMeta({
   twitterDescription: 'Fast peer-to-peer file and directory transfers',
   twitterImage: 'https://fastsend.ing/ogImg.webp',
   twitterSite: 'https://fastsend.ing',
-  twitterCreator: '@ShouChen_'
+  twitterCreator: 'ShouChen_'
 })
 
 const deferredPrompt = useState('deferredPrompt')

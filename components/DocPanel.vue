@@ -70,8 +70,29 @@ onMounted(() => {
         <p>
           2.
           点对点加密传输能保证文件数据的安全，但可能向对方泄漏你的<b>出口IP地址</b>，大部分情况下这是一个动态的<b>NAT出口地址</b>，因此不用担心，你可以在下方看到你当前相对于本站的出口IP地址。<b
-            >如果您觉得这有风险，请勿使用本工具</b
+            >如果您觉得这有风险，请暂停使用本工具</b
           >
+        </p>
+        <h2>四、隐私声明</h2>
+        <h3>1. 信息收集</h3>
+        <p>
+          我们不会收集或存储您的任何个人信息或文件。您在使用我们的工具时，所有文件均通过点对点加密技术直接传输，确保您的数据在传输过程中保持私密和安全。
+        </p>
+        <h3>2. 文件存储</h3>
+        <p>
+          我们的工具不会暂存用户的文件。所有传输的文件仅在用户之间直接传递，文件数据不会经过我们的系统。
+        </p>
+        <h3>3. 数据安全</h3>
+        <p>
+          我们采用先进的加密技术来保护您的文件在传输过程中的安全性。您的文件在传输过程中将被加密，确保只有您和接收方能够访问。
+        </p>
+        <h3>4. 用户责任</h3>
+        <p>
+          请确保您在使用我们的工具时遵循相关法律法规，并对您传输的文件内容负责。我们不对用户传输的文件内容承担任何责任。
+        </p>
+        <h3>5. 隐私政策的变更</h3>
+        <p>
+          我们可能会不时更新本隐私声明。任何更改将在本页面上发布，建议您定期查看以了解最新信息。
         </p>
       </article>
       <article class="post" v-else>
@@ -83,7 +104,7 @@ onMounted(() => {
           Your file data will not pass through third-party servers, ensuring privacy and security.
           Accordingly, the sender needs to remain online during the transfer.
         </p>
-        <h2>1. Quick Start</h2>
+        <h2>I. Quick Start</h2>
         <h3>Send a Single File</h3>
         <p>
           1. The sender clicks <b>Send File</b> to obtain the <b>Pickup Code</b> (files can also be
@@ -107,7 +128,7 @@ onMounted(() => {
           The sender clicks <b>Send Directory</b>, and the other steps are the same (directories do
           not currently support direct drag and drop).
         </p>
-        <h2>2. How It Works</h2>
+        <h2>II. How It Works</h2>
         <p>
           This tool uses <b>WebRTC</b> to provide peer-to-peer data transfer and utilizes
           <b>Modern File Access API</b> for direct file system read and write.
@@ -123,7 +144,7 @@ onMounted(() => {
           automatically use local network transfer,
           <b>which will not consume external bandwidth</b>.
         </p>
-        <h2>3. Precautions</h2>
+        <h2>III. Precautions</h2>
         <p>
           1. Since <b>peer-to-peer connections</b> generally require NAT traversal, in complex
           network environments such as when using a proxy, it may lead to
@@ -135,7 +156,36 @@ onMounted(() => {
           <b>outbound IP address</b> to the other party. In most cases, this is a dynamic
           <b>NAT outbound address</b>, so there is no need to worry. You can see your current
           outbound IP address relative to this site below.
-          <b>If you feel this poses a risk, please do not use this tool.</b>
+          <b>If you feel this poses a risk, please suspend the use of this tool.</b>
+        </p>
+        <h2>IV. Privacy Statement</h2>
+        <h3>1. Information Collection</h3>
+        <p>
+          We do not collect or store any personal information or files from you. When you use our
+          tools, all files are transmitted directly through peer-to-peer encryption technology,
+          ensuring that your data remains private and secure during transmission.
+        </p>
+        <h3>2. File Storage</h3>
+        <p>
+          Our tools do not temporarily store users' files. All transmitted files are passed directly
+          between users, and file data does not go through our system.
+        </p>
+        <h3>3. Data Security</h3>
+        <p>
+          We use advanced encryption technology to protect the security of your files during
+          transmission. Your files will be encrypted during transmission, ensuring that only you and
+          the recipient can access them.
+        </p>
+        <h3>4. User Responsibility</h3>
+        <p>
+          Please ensure that you comply with relevant laws and regulations when using our tools and
+          are responsible for the content of the files you transmit. We do not assume any
+          responsibility for the content of files transmitted by users.
+        </p>
+        <h3>5. Changes to the Privacy Policy</h3>
+        <p>
+          We may update this privacy statement from time to time. Any changes will be posted on this
+          page, and we recommend that you check regularly for the latest information.
         </p>
       </article>
       <Divider />
