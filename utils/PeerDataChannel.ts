@@ -96,6 +96,7 @@ export class PeerDataChannel {
         return
       }
       const dc = this.dc
+      dc.bufferedAmountLowThreshold = 0
       let offset = 0
       let count = 0
       if (typeof data === 'string') {
@@ -113,7 +114,7 @@ export class PeerDataChannel {
             }
           }
         }
-        count = Math.floor(data.length / PeerDataChannel.BLOCK_SIZE) + 1
+        count = Math.ceil(data.length / PeerDataChannel.BLOCK_SIZE)
         dc.send(JSON.stringify({ count: count, type: 'string' }))
       } else {
         dc.onbufferedamountlow = () => {
@@ -138,7 +139,7 @@ export class PeerDataChannel {
             }
           }
         }
-        count = Math.floor(data.byteLength / PeerDataChannel.BLOCK_SIZE) + 1
+        count = Math.ceil(data.byteLength / PeerDataChannel.BLOCK_SIZE)
         dc.send(JSON.stringify({ count: count, type: 'ArrayBuffer' }))
       }
     })

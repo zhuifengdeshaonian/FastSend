@@ -96,6 +96,8 @@ async function handleObjData(obj: any) {
       confirmUser(true)
     }
   } else if (obj.type === 'reqFile') {
+    // console.log('reqFile', obj)
+
     // 请求文件
     hasher.reset()
     const fileDetail = filesInfo.value.fileMap[obj.data]
@@ -117,10 +119,14 @@ async function handleObjData(obj: any) {
 
     // 计算分片数量
     const sliceSize = 1024 * 1024
-    const count = file.size / sliceSize + 1
+    const count = Math.ceil(file.size / sliceSize)
+    // console.log('count', count)
+
     for (let i = 0; i < count; i++) {
       // console.log('i', i)
       const ab = await file.slice(i * sliceSize, (i + 1) * sliceSize).arrayBuffer()
+
+      // console.log('ab', ab.byteLength)
 
       if (ab.byteLength > 0) {
         // 计算哈希
@@ -139,6 +145,8 @@ async function handleObjData(obj: any) {
     // 发送Hash值
     const hash = hasher.finalize().toString(CryptoJS.enc.Base64)
     await pdc?.sendData(JSON.stringify({ type: 'fileDone', data: hash }))
+
+    // console.log('req file done', obj.data)
   } else if (obj.type === 'calcFileHash') {
     // 计算指定文件哈希
     hasher.reset()

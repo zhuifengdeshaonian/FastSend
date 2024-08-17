@@ -35,7 +35,7 @@ self.addEventListener('install', (e) => {
 })
 
 self.addEventListener('activate', (e) => {
-  console.log('Activate', 'v0.4.3')
+  console.log('Activate', 'v0.5.1')
 })
 
 self.addEventListener('fetch', (e) => {
