@@ -214,6 +214,7 @@ export function getValFromLocalStorage<T>(key: string, defVal?: T): T | null {
   return null
 }
 
+// 计算文件或Blob的MD5哈希值
 export async function calcMD5(file: File | Blob) {
   const hasher = CryptoJS.algo.MD5.create()
 
@@ -229,4 +230,24 @@ export async function calcMD5(file: File | Blob) {
   }
   // 返回Hash值
   return hasher.finalize().toString(CryptoJS.enc.Base64)
+}
+
+/**
+ * 将毫秒数格式化为 HH:mm:ss
+ * @param {number} milliseconds
+ * @returns
+ */
+export function formatTime(milliseconds: number) {
+  // 计算小时数
+  const hours = Math.floor(milliseconds / (1000 * 60 * 60))
+  // 计算剩余的分钟数
+  const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60))
+  // 计算剩余的秒数
+  const seconds = Math.floor((milliseconds % (1000 * 60)) / 1000)
+
+  // 格式化分钟和秒数为两位数
+  const formattedMinutes = minutes.toString().padStart(2, '0')
+  const formattedSeconds = seconds.toString().padStart(2, '0')
+
+  return `${hours}:${formattedMinutes}:${formattedSeconds}`
 }

@@ -14,6 +14,10 @@ const isConfirmDefault = useConfirmDefault()
 const code = ref('')
 const qrcodeElm = ref()
 const hasher = CryptoJS.algo.MD5.create()
+const totalTransmittedBytes = ref(0)
+const startTime = ref(0)
+const totalSpeed = ref(0)
+const durationTimeStr = ref('0:00:00')
 const curFile = ref<any>({
   name: '',
   size: 0,
@@ -39,6 +43,7 @@ const status = ref({
   }
 })
 
+let calcSpeedJobId: any
 let ws: WebSocket | null
 let pdc: PeerDataChannel | null
 
@@ -47,8 +52,15 @@ useSeoMeta({
 })
 
 function dispose() {
+  clearInterval(calcSpeedJobId)
   ws?.close()
   pdc?.dispose()
+}
+
+// 计算传输速度和用时
+function calcSpeedFn() {
+  totalSpeed.value = totalTransmittedBytes.value / ((new Date().getTime() - startTime.value) / 1e3)
+  durationTimeStr.value = formatTime(new Date().getTime() - startTime.value)
 }
 
 async function confirmUser(isTrust: boolean) {

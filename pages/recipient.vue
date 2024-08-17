@@ -13,11 +13,13 @@ const peerFilesInfo = ref<any>({ type: '', fileMap: {} })
 const selectedKeys = ref({})
 const code = ref('')
 const waitReceiveFileList = ref<string[]>([])
+const transmittedCount = ref(0)
 const receiveFileIndex = ref(0)
 const totalFileSize = ref(0)
 const totalTransmittedBytes = ref(0)
 const startTime = ref(0)
 const totalSpeed = ref(0)
+const durationTimeStr = ref('0:00:00') //computed(() => formatTime(new Date().getTime() - startTime.value))
 const hasher = CryptoJS.algo.MD5.create()
 const curFile = ref<any>({
   name: '',
@@ -88,12 +90,13 @@ function dispose() {
   pdc?.dispose()
 }
 
-// 计算传输速度
+// 计算传输速度和用时
 function calcSpeedFn() {
   const curBytes = curFile.value.transmittedBytes + pdc?.getReciviedBufferSize()
   curFile.value.speed = curBytes - curFile.value.lastSize
   curFile.value.lastSize = curBytes
   totalSpeed.value = totalTransmittedBytes.value / ((new Date().getTime() - startTime.value) / 1e3)
+  durationTimeStr.value = formatTime(new Date().getTime() - startTime.value)
 }
 
 // 对于不支持现代文件访问API的备用下载方法
@@ -401,7 +404,7 @@ async function doReceive() {
   totalTransmittedBytes.value = 0
   startTime.value = new Date().getTime()
   // 启动传输速度计算定时器
-  calcSpeedJobId = setInterval(calcSpeedFn, 1e3)
+  // calcSpeedJobId = setInterval(calcSpeedFn, 1e3)
 
   try {
     if (peerFilesInfo.value.type === 'transFile') {
@@ -413,10 +416,14 @@ async function doReceive() {
         })
         curFileWriter = await saveFileFH?.createWritable()
       }
+      // 启动传输速度计算定时器
+      calcSpeedJobId = setInterval(calcSpeedFn, 1e3)
       await requestFile(curFile.value.name)
     } else if (peerFilesInfo.value.type === 'transDir') {
       // 传输目录
       rootDirDH = await showDirectoryPicker()
+      // 启动传输速度计算定时器
+      calcSpeedJobId = setInterval(calcSpeedFn, 1e3)
       // console.log(waitReceiveFileList.value);
       for (let i = 0; i < waitReceiveFileList.value.length; i++) {
         const key = waitReceiveFileList.value[i]
@@ -683,6 +690,7 @@ onUnmounted(() => {
       <div class="mt-6 md:mt-0">
         <!-- 进度 -->
         <div>
+          <!-- 当前文件进度 -->
           <p class="text-sm mt-2">{{ curFile.name }}</p>
           <ProgressBar
             :value="
@@ -695,17 +703,20 @@ onUnmounted(() => {
             ><span class="mx-1">/</span><span>{{ humanFileSize(curFile.size) }}</span>
           </p>
 
+          <!-- 总进度 -->
           <p class="text-sm mt-4">{{ $t('label.totalProgress') }}</p>
           <ProgressBar
             :value="
               Math.round(totalFileSize === 0 ? 0 : (totalTransmittedBytes / totalFileSize) * 100)
             "
           />
-          <p class="text-right text-sm">
+          <div class="flex flex-row items-center text-sm">
+            <span>{{ durationTimeStr }}</span>
+            <div class="flex-1"></div>
             <span>{{ humanFileSize(totalSpeed) }}/s</span
             ><span class="ml-4">{{ humanFileSize(totalTransmittedBytes) }}</span
             ><span class="mx-1">/</span><span>{{ humanFileSize(totalFileSize) }}</span>
-          </p>
+          </div>
         </div>
 
         <!-- 操作按钮 -->

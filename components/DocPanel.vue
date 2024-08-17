@@ -17,7 +17,16 @@ onMounted(() => {
 
 <template>
   <div class="fixed right-5 bottom-20 z-40">
-    <Button text raised rounded size="large" aria-label="Install PWA" @click="showDocPanel">
+    <Button
+      text
+      raised
+      rounded
+      severity="contrast"
+      size="large"
+      class="shadow-sm shadow-black/25 border-0 dark:border border-white/25"
+      @click="showDocPanel"
+      aria-label="Document"
+    >
       <Icon name="solar:notebook-bookmark-line-duotone" class="text-black/90 dark:text-white/90" />
     </Button>
 
@@ -76,7 +85,8 @@ onMounted(() => {
         <h2>四、隐私声明</h2>
         <h3>1. 信息收集</h3>
         <p>
-          我们不会收集或存储您的任何个人信息或文件。您在使用我们的工具时，所有文件均通过点对点加密技术直接传输，确保您的数据在传输过程中保持私密和安全。
+          <b>我们不会收集或存储您的任何个人信息或文件。</b
+          >您在使用我们的工具时，所有文件均通过点对点加密技术直接传输，确保您的数据在传输过程中保持私密和安全。
         </p>
         <h3>2. 文件存储</h3>
         <p>
@@ -161,8 +171,8 @@ onMounted(() => {
         <h2>IV. Privacy Statement</h2>
         <h3>1. Information Collection</h3>
         <p>
-          We do not collect or store any personal information or files from you. When you use our
-          tools, all files are transmitted directly through peer-to-peer encryption technology,
+          <b>We do not collect or store any personal information or files from you.</b> When you use
+          our tools, all files are transmitted directly through peer-to-peer encryption technology,
           ensuring that your data remains private and secure during transmission.
         </p>
         <h3>2. File Storage</h3>
