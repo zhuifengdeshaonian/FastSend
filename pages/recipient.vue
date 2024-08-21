@@ -19,7 +19,8 @@ const totalFileSize = ref(0)
 const totalTransmittedBytes = ref(0)
 const startTime = ref(0)
 const totalSpeed = ref(0)
-const durationTimeStr = ref('0:00:00') //computed(() => formatTime(new Date().getTime() - startTime.value))
+const durationTimeStr = ref('00:00') //computed(() => formatTime(new Date().getTime() - startTime.value))
+const remainingTimeStr = ref('00:00')
 const hasher = CryptoJS.algo.MD5.create()
 const curFile = ref<any>({
   name: '',
@@ -97,6 +98,9 @@ function calcSpeedFn() {
   curFile.value.lastSize = curBytes
   totalSpeed.value = totalTransmittedBytes.value / ((new Date().getTime() - startTime.value) / 1e3)
   durationTimeStr.value = formatTime(new Date().getTime() - startTime.value)
+  remainingTimeStr.value = formatTime(
+    ((totalFileSize.value - totalTransmittedBytes.value) / totalSpeed.value) * 1e3
+  )
 }
 
 // 对于不支持现代文件访问API的备用下载方法
@@ -711,7 +715,7 @@ onUnmounted(() => {
             "
           />
           <div class="flex flex-row items-center text-sm">
-            <span>{{ durationTimeStr }}</span>
+            <span>{{ durationTimeStr }} / {{ remainingTimeStr }}</span>
             <div class="flex-1"></div>
             <span>{{ humanFileSize(totalSpeed) }}/s</span
             ><span class="ml-4">{{ humanFileSize(totalTransmittedBytes) }}</span

@@ -249,5 +249,7 @@ export function formatTime(milliseconds: number) {
   const formattedMinutes = minutes.toString().padStart(2, '0')
   const formattedSeconds = seconds.toString().padStart(2, '0')
 
-  return `${hours}:${formattedMinutes}:${formattedSeconds}`
+  return hours === 0
+    ? `${formattedMinutes}:${formattedSeconds}`
+    : `${hours}:${formattedMinutes}:${formattedSeconds}`
 }

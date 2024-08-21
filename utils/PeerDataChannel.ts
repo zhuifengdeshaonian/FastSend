@@ -1,5 +1,5 @@
 export class PeerDataChannel {
-  private static BLOCK_SIZE = 16383
+  private static BLOCK_SIZE = 32768
   private pc: RTCPeerConnection
   private dc: RTCDataChannel | null = null
   private receiveData: {
