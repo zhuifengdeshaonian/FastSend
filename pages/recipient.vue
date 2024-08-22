@@ -93,7 +93,7 @@ function dispose() {
 
 // 计算传输速度和用时
 function calcSpeedFn() {
-  const curBytes = curFile.value.transmittedBytes + pdc?.getReciviedBufferSize()
+  const curBytes = curFile.value.transmittedBytes + (pdc?.getReceivedBufferSize() || 0)
   curFile.value.speed = curBytes - curFile.value.lastSize
   curFile.value.lastSize = curBytes
   totalSpeed.value = totalTransmittedBytes.value / ((new Date().getTime() - startTime.value) / 1e3)
@@ -250,7 +250,7 @@ async function handleObjData(obj: any) {
 // 初始化对等数据通道
 function initPDC() {
   status.value.isPeerConnecting = true
-  pdc = new PeerDataChannel(pubIceServers, true)
+  pdc = new PeerDataChannel({ iceServers: pubIceServers, initializeDataChannel: true })
   pdc.onSDP = (sdp) => ws?.send(JSON.stringify({ type: 'sdp', data: sdp }))
   pdc.onICECandidate = (candidate) =>
     ws?.send(JSON.stringify({ type: 'candidate', data: candidate }))
@@ -406,8 +406,8 @@ async function doReceive() {
   // 初始化参数
   receiveFileIndex.value = 0
   totalTransmittedBytes.value = 0
-  startTime.value = new Date().getTime()
   // 启动传输速度计算定时器
+  // startTime.value = Date.now()
   // calcSpeedJobId = setInterval(calcSpeedFn, 1e3)
 
   try {
@@ -421,12 +421,14 @@ async function doReceive() {
         curFileWriter = await saveFileFH?.createWritable()
       }
       // 启动传输速度计算定时器
+      startTime.value = Date.now()
       calcSpeedJobId = setInterval(calcSpeedFn, 1e3)
       await requestFile(curFile.value.name)
     } else if (peerFilesInfo.value.type === 'transDir') {
       // 传输目录
       rootDirDH = await showDirectoryPicker()
       // 启动传输速度计算定时器
+      startTime.value = Date.now()
       calcSpeedJobId = setInterval(calcSpeedFn, 1e3)
       // console.log(waitReceiveFileList.value);
       for (let i = 0; i < waitReceiveFileList.value.length; i++) {
@@ -754,7 +756,10 @@ onUnmounted(() => {
           </NuxtLink>
 
           <!-- 传输完成 -->
-          <div v-if="status.isDone" class="flex flex-col items-center justify-center py-4 gap-4">
+          <div
+            v-if="status.isDone"
+            class="flex flex-col items-center justify-center py-4 gap-4 mb-4"
+          >
             <Icon name="solar:confetti-line-duotone" size="100" class="text-amber-500" />
             <p class="text-xl tracking-wider">{{ $t('hint.transCompleted') }}</p>
           </div>

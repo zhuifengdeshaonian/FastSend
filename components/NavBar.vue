@@ -1,12 +1,18 @@
 <script setup lang="ts">
 const localePath = useLocalePath()
 const { locale, setLocale } = useI18n()
+const selectedLocale = ref('')
 const colorMode = useColorMode()
 const isBgBlur = ref(false)
 const userInfo = useUserInfo()
 const tmpNickname = ref('')
-const userInfoPanel = ref()
+const userInfoPopover = ref()
+const i18nPopover = ref()
 const isConfirmDefault = useConfirmDefault()
+const availableLocales = ref([
+  { name: 'English', code: 'en', icon: 'icon-park-outline:english' },
+  { name: '中文', code: 'zh', icon: 'icon-park-outline:chinese' }
+])
 
 // 暗色模式切换
 function switchColorMode() {
@@ -34,7 +40,7 @@ function switchConfirmDefault() {
 // 展示昵称编辑弹框
 function showNicknameEditor(event: Event) {
   tmpNickname.value = userInfo.value.nickname
-  userInfoPanel.value.toggle(event)
+  userInfoPopover.value.toggle(event)
 }
 
 // 编辑昵称
@@ -44,7 +50,7 @@ function editNickname() {
     userInfo.value.nickname = 'User_' + genRandomString(6)
   }
   localStorage.setItem('nickname', userInfo.value.nickname)
-  userInfoPanel.value.hide()
+  userInfoPopover.value.hide()
 }
 
 // 编辑头像
@@ -130,8 +136,8 @@ onMounted(() => {
     </div>
 
     <!-- 用户信息弹出框 -->
-    <Popover ref="userInfoPanel">
-      <div class="relative">
+    <Popover ref="userInfoPopover">
+      <div class="relative p-3 m-2">
         <div class="absolute top-0 right-0 z-10">
           <Button
             severity="secondary"
@@ -202,6 +208,21 @@ onMounted(() => {
           v-else-if="locale === 'en'"
         />
       </Button>
+
+      <!-- <Popover ref="i18nPopover">
+        <Listbox
+          v-model="selectedLocale"
+          :options="availableLocales"
+          optionLabel="name"
+          class="border-0"
+          ><template #option="slotProps">
+            <div class="flex items-center gap-2 text-sm">
+              <Icon :name="slotProps.option.icon" />
+              <div>{{ slotProps.option.name }}</div>
+            </div>
+          </template>
+        </Listbox>
+      </Popover> -->
 
       <Button
         severity="secondary"

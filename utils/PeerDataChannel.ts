@@ -1,5 +1,18 @@
+/**
+ * PeerDataChannel 配置类
+ */
+interface PeerDataChannelConfig {
+  iceServers?: RTCIceServer[]
+  blockSize?: number
+  initializeDataChannel?: boolean
+}
+
+/**
+ * 封装用于点对点数据传输的 WebRTC 数据通道
+ */
 export class PeerDataChannel {
-  private static BLOCK_SIZE = 32768
+  private static readonly DEFAULT_BLOCK_SIZE = 32768
+
   private pc: RTCPeerConnection
   private dc: RTCDataChannel | null = null
   private receiveData: {
@@ -9,53 +22,80 @@ export class PeerDataChannel {
     type: string
     chunks: (string | ArrayBuffer)[]
   } = { startTime: 0, offset: 0, count: 0, type: '', chunks: [] }
-  private sendPromiseReject: (reason?: any) => void = () => {}
-  private eventQueue: EventQueue<any>
+  private sendPromiseReject: ((reason?: any) => void) | null = null
+  private eventQueue: EventQueue<ArrayBuffer | string>
+  private blockSize: number
+
   public onReceive: (
     data: ArrayBuffer | string,
     info: { size: number; duration: number }
-  ) => Promise<void> = () => new Promise<void>(() => {})
+  ) => Promise<void> = async () => {}
   public onSDP: (sdp: RTCSessionDescriptionInit) => void = () => {}
   public onICECandidate: (candidate: RTCIceCandidate) => void = () => {}
-  public onError: (e: any) => void = () => {}
+  public onError: (e: Error) => void = () => {}
   public onConnected: () => void = () => {}
   public onDispose: () => void = () => {}
   public onOpen: () => void = () => {}
 
-  constructor(iceServers?: RTCIceServer[], init?: boolean) {
-    this.eventQueue = new EventQueue((dat) => this.onData(dat))
-    this.pc = new RTCPeerConnection({ iceServers: iceServers })
-    this.pc.ondatachannel = (e) => {
-      this.dc = e.channel
-      this.dc.bufferedAmountLowThreshold = 0
-      this.dc.onmessage = (e) => this.eventQueue.enqueue(e.data)
-      this.dc.onopen = () => this.onOpen()
-    }
-    this.pc.onnegotiationneeded = () => this.reNegotition()
-    this.pc.onicecandidate = (e) => (e.candidate ? this.onICECandidate(e.candidate) : undefined)
-    this.pc.onicecandidateerror = this.onError
-    this.pc.onconnectionstatechange = () => {
-      if (['closed', 'disconnected', 'failed'].includes(this.pc.connectionState)) {
-        this.dispose()
-        this.onDispose()
-      } else if (this.pc.connectionState === 'connected') {
-        this.onConnected()
-      }
-    }
-    if (init) {
-      this.dc = this.pc.createDataChannel('dc')
-      this.dc.bufferedAmountLowThreshold = 0
-      this.dc.onmessage = (e) => this.eventQueue.enqueue(e.data)
-      this.dc.onopen = () => this.onOpen()
+  /**
+   * 创建一个新的 PeerDataChannel 实例
+   * @param config 配置
+   */
+  constructor(config: PeerDataChannelConfig = {}) {
+    this.blockSize = config.blockSize || PeerDataChannel.DEFAULT_BLOCK_SIZE
+    this.eventQueue = new EventQueue(this.onData.bind(this))
+    this.pc = new RTCPeerConnection({ iceServers: config.iceServers })
+
+    this.setupPeerConnection()
+
+    if (config.initializeDataChannel) {
+      this.initializeDataChannel()
     }
   }
 
-  private async onData(data: any) {
+  private setupPeerConnection(): void {
+    this.pc.ondatachannel = this.handleDataChannel.bind(this)
+    this.pc.onnegotiationneeded = this.reNegotiation.bind(this)
+    this.pc.onicecandidate = (e) => e.candidate && this.onICECandidate(e.candidate)
+    this.pc.onicecandidateerror = (e) => {
+      // console.warn(e)
+      // ingore
+    }
+    this.pc.onconnectionstatechange = this.handleConnectionStateChange.bind(this)
+  }
+
+  private handleDataChannel(e: RTCDataChannelEvent): void {
+    this.dc = e.channel
+    this.setupDataChannel()
+  }
+
+  private initializeDataChannel(): void {
+    this.dc = this.pc.createDataChannel('dc')
+    this.setupDataChannel()
+  }
+
+  private setupDataChannel(): void {
+    if (!this.dc) return
+    this.dc.bufferedAmountLowThreshold = 0
+    this.dc.onmessage = (e) => this.eventQueue.enqueue(e.data)
+    this.dc.onopen = () => this.onOpen()
+  }
+
+  private handleConnectionStateChange(): void {
+    if (['closed', 'disconnected', 'failed'].includes(this.pc.connectionState)) {
+      this.dispose()
+      this.onDispose()
+    } else if (this.pc.connectionState === 'connected') {
+      this.onConnected()
+    }
+  }
+
+  private async onData(data: ArrayBuffer | string): Promise<void> {
     const receiveData = this.receiveData
     if (receiveData.offset === receiveData.count) {
-      const dat = JSON.parse(data)
+      const dat = JSON.parse(data as string)
       this.receiveData = {
-        startTime: new Date().getTime(),
+        startTime: Date.now(),
         offset: 0,
         count: dat.count,
         type: dat.type,
@@ -65,156 +105,133 @@ export class PeerDataChannel {
       receiveData.chunks.push(data)
       receiveData.offset++
       if (receiveData.offset === receiveData.count) {
-        const endTime = new Date().getTime()
+        const endTime = Date.now()
         const b = new Blob(receiveData.chunks)
-        if (receiveData.type === 'string') {
-          await this.onReceive(await b.text(), {
-            size: b.size,
-            duration: endTime - receiveData.startTime
-          })
-        } else {
-          await this.onReceive(await b.arrayBuffer(), {
-            size: b.size,
-            duration: endTime - receiveData.startTime
-          })
-        }
+        const result = receiveData.type === 'string' ? await b.text() : await b.arrayBuffer()
+        await this.onReceive(result, {
+          size: b.size,
+          duration: endTime - receiveData.startTime
+        })
         receiveData.chunks = []
       }
     }
   }
 
   /**
-   * 发送数据块，注意只能串行调用
-   * @param data
-   * @returns
+   * 发送数据，注意只能串行调用
+   * @param data 要发送的数据
    */
-  public async sendData(data: ArrayBuffer | string) {
+  public async sendData(data: ArrayBuffer | string): Promise<void> {
+    if (!this.dc) {
+      throw new Error('Data channel not initialized')
+    }
+
     return new Promise<void>((resolve, reject) => {
       this.sendPromiseReject = reject
-      if (!this.dc) {
-        reject()
-        return
-      }
-      const dc = this.dc
+      const dc = this.dc!
       dc.bufferedAmountLowThreshold = 0
+      const count = Math.ceil(
+        (typeof data === 'string' ? data.length : data.byteLength) / this.blockSize
+      )
       let offset = 0
-      let count = 0
-      if (typeof data === 'string') {
-        dc.onbufferedamountlow = () => {
+
+      dc.onbufferedamountlow = () => {
+        if (count - offset > 16) {
+          dc.bufferedAmountLowThreshold = 16 * this.blockSize
+        } else {
+          dc.bufferedAmountLowThreshold = 0
+        }
+        for (let i = 0; i < 32; i++) {
           if (offset < count) {
-            dc.send(
-              data.substring(
-                PeerDataChannel.BLOCK_SIZE * offset,
-                PeerDataChannel.BLOCK_SIZE * (offset + 1)
-              )
-            )
+            const chunk = data.slice(this.blockSize * offset, this.blockSize * (offset + 1))
+            dc.send(<string>chunk)
             offset++
             if (offset >= count) {
               resolve()
+              break
             }
           }
         }
-        count = Math.ceil(data.length / PeerDataChannel.BLOCK_SIZE)
-        dc.send(JSON.stringify({ count: count, type: 'string' }))
-      } else {
-        dc.onbufferedamountlow = () => {
-          if (count - offset > 16) {
-            dc.bufferedAmountLowThreshold = 16 * PeerDataChannel.BLOCK_SIZE
-          } else {
-            dc.bufferedAmountLowThreshold = 0
-          }
-          for (let i = 0; i < 32; i++) {
-            if (offset < count) {
-              dc.send(
-                data.slice(
-                  PeerDataChannel.BLOCK_SIZE * offset,
-                  PeerDataChannel.BLOCK_SIZE * (offset + 1)
-                )
-              )
-              offset++
-              if (offset >= count) {
-                resolve()
-                break
-              }
-            }
-          }
-        }
-        count = Math.ceil(data.byteLength / PeerDataChannel.BLOCK_SIZE)
-        dc.send(JSON.stringify({ count: count, type: 'ArrayBuffer' }))
       }
+      dc.send(JSON.stringify({ count, type: typeof data }))
     })
   }
 
   /**
-   * 重协商SDP
+   * 重协商 SDP
    */
-  private async reNegotition() {
+  private async reNegotiation(): Promise<void> {
     return this.pc
       .createOffer()
       .then((offer) => this.pc.setLocalDescription(offer))
       .then(() => (this.pc.localDescription ? this.onSDP(this.pc.localDescription) : undefined))
       .catch((e) => {
         console.error(e)
-        this.onError(e)
+        this.onError(e instanceof Error ? e : new Error('Unknown error during renegotiation'))
         this.dispose()
       })
   }
 
   /**
-   * 设置远端SDP
-   * @param sdp 会话描述
+   * 设置远程 SDP
+   * @param sdp SDP描述
    */
-  public async setRemoteSDP(sdp: RTCSessionDescriptionInit) {
-    return this.pc
-      .setRemoteDescription(sdp)
-      .then(() => (sdp?.type === 'offer' ? this.pc.createAnswer() : undefined))
-      .then(async (anwser) => {
-        if (anwser) {
-          await this.pc.setLocalDescription(anwser)
-          this.onSDP(anwser)
-        }
-      })
-      .catch((e) => {
-        console.error(e)
-        this.onError(e)
-        this.dispose()
-      })
+  public async setRemoteSDP(sdp: RTCSessionDescriptionInit): Promise<void> {
+    try {
+      await this.pc.setRemoteDescription(sdp)
+      if (sdp.type === 'offer') {
+        const answer = await this.pc.createAnswer()
+        await this.pc.setLocalDescription(answer)
+        this.onSDP(answer)
+      }
+    } catch (e) {
+      console.error(e)
+      this.onError(e instanceof Error ? e : new Error('Error setting remote SDP'))
+      this.dispose()
+    }
   }
 
   /**
-   * 添加ICE服务候选
-   * @param candidate ICE服务候选
+   * 添加一个 ICE candidate
+   * @param candidate ICE candidate
    */
-  public async addICECandidate(candidate: RTCIceCandidateInit) {
-    return this.pc.addIceCandidate(candidate)
+  public async addICECandidate(candidate: RTCIceCandidateInit): Promise<void> {
+    await this.pc.addIceCandidate(candidate)
   }
 
   /**
-   * 判断是否已连接
-   * @returns 为 true 则已连接，否则未连接
+   * 检查连接是否断开
+   * @returns 如果连接则为 True，否则为 false
    */
-  public isConnected() {
+  public isConnected(): boolean {
     return this.pc.connectionState === 'connected'
   }
 
-  public getReciviedBufferSize() {
-    let size = 0
-    this.receiveData.chunks.forEach(
-      (dat) => (size += typeof dat === 'string' ? dat.length : dat.byteLength)
+  /**
+   * 获取接收缓存的大小
+   * @returns 接收缓存的大小
+   */
+  public getReceivedBufferSize(): number {
+    return this.receiveData.chunks.reduce(
+      (size, dat) => size + (typeof dat === 'string' ? dat.length : dat.byteLength),
+      0
     )
-    return size
   }
 
   /**
-   * 销毁节点并清理资源
+   * 关闭对等连接并清理资源
    */
-  public dispose() {
-    this?.sendPromiseReject()
+  public dispose(): void {
+    if (this.sendPromiseReject) {
+      this.sendPromiseReject()
+      this.sendPromiseReject = null
+    }
 
-    // 关闭数据通道
-    this.dc?.close()
+    if (this.dc) {
+      this.dc.close()
+      this.dc = null
+    }
 
-    // 移除所有的事件监听器
     this.pc.onicecandidate = null
     this.pc.ontrack = null
     this.pc.ondatachannel = null
@@ -227,29 +244,29 @@ export class PeerDataChannel {
 }
 
 class EventQueue<T> {
-  private queue: any[T]
-  private processing: boolean
+  private queue: T[] = []
+  private processing = false
   private handler: (e: T) => Promise<void>
 
   constructor(handler: (e: T) => Promise<void>) {
-    this.queue = []
-    this.processing = false
     this.handler = handler
   }
 
-  public enqueue(e: T) {
+  public enqueue(e: T): void {
     this.queue.push(e)
     if (!this.processing) {
-      this.processNext()
+      void this.processNext()
     }
   }
 
-  private async processNext() {
+  private async processNext(): Promise<void> {
     if (this.queue.length > 0) {
       this.processing = true
       const e = this.queue.shift()
-      await this.handler(e)
-      this.processNext()
+      if (e !== undefined) {
+        await this.handler(e)
+      }
+      void this.processNext()
     } else {
       this.processing = false
     }

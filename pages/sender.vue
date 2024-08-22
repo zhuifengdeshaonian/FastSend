@@ -180,7 +180,7 @@ async function handleObjData(obj: any) {
 }
 
 function initPDC() {
-  pdc = new PeerDataChannel(pubIceServers)
+  pdc = new PeerDataChannel({ iceServers: pubIceServers })
   pdc.onSDP = (sdp) => ws?.send(JSON.stringify({ type: 'sdp', data: sdp }))
   pdc.onICECandidate = (candidate) =>
     ws?.send(JSON.stringify({ type: 'candidate', data: candidate }))

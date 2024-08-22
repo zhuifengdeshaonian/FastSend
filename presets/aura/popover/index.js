@@ -18,7 +18,7 @@ export default {
         ]
     },
     content: {
-        class: ['p-5 items-center flex', 'rounded-lg', 'border border-surface-200 dark:border-surface-700']
+        class: ['p-0 items-center flex', 'rounded-lg', 'border border-surface-200 dark:border-surface-700']
     },
     transition: {
         enterFromClass: 'opacity-0 scale-y-[0.8]',
