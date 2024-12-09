@@ -18,7 +18,7 @@ export default defineI18nConfig(() => ({
         send: 'Send',
         receive: 'Receive',
         receiveCode: 'Receive Code',
-        quickStart: 'Qucik Start',
+        quickStart: 'Quick Start',
         transmitted: 'Transmitted',
         times: 'times',
         totalProgress: 'Total progress',

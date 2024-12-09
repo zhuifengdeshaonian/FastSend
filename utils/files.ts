@@ -107,27 +107,40 @@ export async function selectDir() {
  * @param accept 接受的MIME类型
  * @returns
  */
-export async function selectFile(accept?: string) {
-  return new Promise<File>((resolve, reject) => {
-    if (typeof document === 'undefined') {
-      reject()
-      return
-    }
+export async function selectFile(accept?: string): Promise<File> {
+  if (typeof document === 'undefined') {
+    throw new Error('document is undefined')
+  }
+
+  return new Promise((resolve, reject) => {
     const input = document.createElement('input')
     input.style.display = 'none'
     input.type = 'file'
     if (accept) {
       input.accept = accept
     }
+
     input.onchange = () => {
-      input.onchange = null
-      input.remove()
       if (input.files && input.files.length > 0) {
         resolve(input.files[0])
       } else {
-        reject('No select')
+        reject(new Error('未选择文件'))
       }
+      cleanup()
     }
+
+    input.onerror = (error) => {
+      reject(error)
+      cleanup()
+    }
+
+    const cleanup = () => {
+      input.onchange = null
+      input.onerror = null
+      input.remove()
+    }
+
+    document.body.appendChild(input)
     input.click()
   })
 }
