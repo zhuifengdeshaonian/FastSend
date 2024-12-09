@@ -1,75 +1,88 @@
-# Nuxt 3 Minimal Starter
+<h1 align="center">FastSend 文件快传 🚀</h1>
 
-Look at the [Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+<p align="center">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.5.5-blue.svg?style=flat-square" />
+  <a href="#" target="_blank">
+    <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" />
+  </a>
+</p>
 
-## Setup
+<p align="center">
+  <img src="./public/ogImg.webp" />
+</p>
 
-Make sure to install the dependencies:
+## 📖 项目介绍
+
+FastSend 是一个基于 WebRTC 技术的点对点文件传输工具，支持快速的目录同步和文件传输。通过浏览器即可实现安全、高效的文件共享。
+
+🌐 在线体验：[fastsend.ing](https://fastsend.ing)
+
+## ✨ 特性
+
+- 🔒 点对点加密传输，确保数据安全
+- 📁 支持文件和文件夹传输
+- 🚀 局域网自动优化，传输更快
+- 🎯 简单易用的界面设计
+- 🌍 支持中英文界面
+- 📲 支持PWA轻量安装
+
+## 🛠️ 技术栈
+
+- WebRTC
+- Vue.js
+- Nuxt3
+- TypeScript
+- Modern File System API
+
+## 📦 安装与构建
 
 ```bash
-# npm
-npm install
-
-# pnpm
-pnpm install
-
-# yarn
+# 安装依赖
 yarn install
 
-# bun
-bun install
-```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
-# npm
-npm run dev
-
-# pnpm
-pnpm run dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
-```
-
-## Production
-
-Build the application for production:
-
-```bash
-# npm
-npm run build
-
-# pnpm
-pnpm run build
-
-# yarn
+# 构建项目
 yarn build
-
-# bun
-bun run build
 ```
 
-Locally preview production build:
+## 🚀 使用方法
 
 ```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm run preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
+# 启动服务
+node .output/server/index.mjs
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## 💡 使用提示
+
+1. 确保浏览器启用了 WebRTC 功能
+2. 如需传输文件夹，请确保浏览器支持现代文件系统 API
+3. 在同一局域网内传输速度最快
+4. 建议在网络状态良好时使用
+
+## 👨‍💻 作者
+
+**ShouChen**
+
+- 博客: [shouchen.blog](https://shouchen.blog)
+- X: [@ShouChen\_](https://x.com/ShouChen_)
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 📝 开源协议
+
+本项目基于 MIT 协议开源。
+
+## ⭐ 支持项目
+
+如果这个项目对你有帮助，欢迎给一个 star 支持一下！
+
+---
+
+<a href="https://star-history.com/#ShouChenICU/Fastsend&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=ShouChenICU/Fastsend&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=ShouChenICU/Fastsend&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=ShouChenICU/Fastsend&type=Date" />
+ </picture>
+</a>
