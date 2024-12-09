@@ -8,7 +8,7 @@ const initPool = new TTLCache<string, any>({
   dispose: (peer) => {
     if (!peer.isInited) {
       // 如果超时未初始化，则断开连接
-      peer.ctx.node.ws.close()
+      peer.close()
     }
   }
 })
@@ -20,7 +20,7 @@ const waitConnectPool = new TTLCache<string, any>({
   ttl: 600e3,
   dispose: (peer) => {
     if (!peer.pairPeer) {
-      peer.ctx.node.ws.close()
+      peer.close()
     }
   }
 })
@@ -30,7 +30,7 @@ const initedPool = new TTLCache<string, any>({
   max: 20000,
   ttl: 30 * 60e3,
   dispose: (peer) => {
-    peer.ctx.node.ws.close()
+    peer.close()
   }
 })
 
@@ -38,7 +38,7 @@ const initedPool = new TTLCache<string, any>({
 function disposePeer(peer: any) {
   initPool.delete(peer.id)
   initedPool.delete(peer.id)
-  peer.ctx.node.ws.close()
+  peer.close()
   if (peer.pairPeer && peer.pairPeer.readyState === 1) {
     disposePeer(peer.pairPeer)
   }
