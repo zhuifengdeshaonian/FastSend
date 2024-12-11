@@ -51,6 +51,25 @@ yarn build
 node .output/server/index.mjs
 ```
 
+## 🐳 Docker和Docker Compose
+
+### Docker 构建
+
+```bash
+docker build -t fastsend .
+docker run -d --name fastsend -p 3000:3000 fastsend
+```
+
+### Docker Compose
+
+将项目拉取到本地，然后运行：
+
+```bash
+docker-compose up -d
+```
+
+访问 `http://localhost:3000` 即可使用。
+
 ## 💡 使用提示
 
 1. 确保浏览器启用了 WebRTC 功能
