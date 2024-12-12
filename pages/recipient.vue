@@ -481,22 +481,21 @@ onMounted(() => {
   }
   code.value = query.code + ''
 
-  // 超时处理
-  setTimeout(() => {
-    if (status.value.isIniting) {
-      // 30秒后如果还没有连接成功，算超时
-      dispose()
-      if (status.value.error.code === 0) {
-        status.value.error.code = -10
-      }
-    }
-  }, 30e3)
-
   // 初始化信令服务器连接WebSocker
   ws = new WebSocket(location.origin.replace('http', 'ws') + '/api/connect')
   ws.onopen = () => {
     status.value.isConnectServer = true
     ws?.send(JSON.stringify({ type: 'receive', code: code.value }))
+    // 超时处理
+    setTimeout(() => {
+      if (status.value.isIniting) {
+        // 45秒后如果还没有连接成功，算超时
+        dispose()
+        if (status.value.error.code === 0) {
+          status.value.error.code = -10
+        }
+      }
+    }, 45e3)
   }
   ws.onmessage = (e) => {
     const data = JSON.parse(e.data)
